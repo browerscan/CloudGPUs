@@ -4,7 +4,7 @@ import { CompareBuilder } from "@/components/CompareBuilder";
 import { listGpuModels, listProviders } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Compare GPU clouds and GPUs",

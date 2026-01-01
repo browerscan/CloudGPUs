@@ -13,7 +13,7 @@ import { generateGpuFaqs, generateGpuIntro } from "@/lib/content";
 import { env } from "@/lib/env";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const revalidate = 600;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   try {

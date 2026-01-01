@@ -9,7 +9,7 @@ import { affiliateClickUrl, apiGet, getProvider, listProviders, priceHistory } f
 import { seoGpuSlug } from "@/lib/aliases";
 import { formatRelativeTime } from "@/lib/format";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   try {

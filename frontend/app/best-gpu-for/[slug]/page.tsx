@@ -7,7 +7,7 @@ import { seoGpuSlug } from "@/lib/aliases";
 import { formatUsdPerHour } from "@/lib/format";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const revalidate = 86400;
+export const dynamic = "force-dynamic";
 
 async function safeGpu(slug: string) {
   try {

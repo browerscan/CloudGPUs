@@ -31,7 +31,7 @@ const FEATURE_FILTER_PAGES = [
   { path: "spot-instances-only", priority: 0.65 },
 ] as const;
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [gpus, providers] = await Promise.all([listGpuModels(), listProviders()]).catch(() => [

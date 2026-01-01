@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type ComparePricesResponse = {
   gpu: { slug: string; name: string; short_name: string };

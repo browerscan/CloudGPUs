@@ -3,7 +3,7 @@ import Link from "next/link";
 import { listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Cloud GPU pricing pages",

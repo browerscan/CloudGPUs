@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { REGION_PAGES } from "@/lib/pseo";
 
-export const revalidate = 86400;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "GPU cloud regions",

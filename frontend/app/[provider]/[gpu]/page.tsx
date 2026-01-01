@@ -15,7 +15,7 @@ import {
 import { normalizeProviderSlug, seoGpuSlug } from "@/lib/aliases";
 import { formatRelativeTime } from "@/lib/format";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   try {

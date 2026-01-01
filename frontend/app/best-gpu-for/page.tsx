@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const revalidate = 86400;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Best GPU for common workloads",
