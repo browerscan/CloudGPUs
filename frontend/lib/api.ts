@@ -292,14 +292,19 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = new URL(path, env.apiBaseUrl);
   const token = getAuthToken();
 
-  const headers: HeadersInit = {
-    ...(init?.headers ?? {}),
+  const headers: Record<string, string> = {
     accept: "application/json",
     "content-type": "application/json",
   };
 
   if (token) {
     headers.authorization = `Bearer ${token}`;
+  }
+
+  // Merge additional headers from init
+  if (init?.headers) {
+    const initHeaders = init.headers as Record<string, string>;
+    Object.assign(headers, initHeaders);
   }
 
   const res = await fetch(url.toString(), {
