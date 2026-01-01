@@ -1,0 +1,301 @@
+﻿2025年全球GPU云基础设施深度研究报告：B200、H200与RTX 5090定价图谱与API生态全景
+1. 执行摘要
+截至2025年12月，全球GPU云算力市场正经历一场由硬件架构代际更迭驱动的深刻重构。随着NVIDIA Blackwell架构（B200/GB200）的规模化部署以及Hopper架构增强版（H200）的普及，加之消费级旗舰RTX 5090对推理市场的冲击，传统的云计算定价模型已发生根本性分化。本报告旨在基于全球主要GPU云服务商（包括专有AI云、去中心化算力市场及区域型服务商）的最新数据，构建一份详尽的定价与技术图谱。
+分析显示，算力市场已从2023-2024年的“全面短缺”转向“结构性分层”。在高端训练端，CoreWeave、Lambda Labs等“新云巨头（Neoclouds）”通过锁定B200与GB200 NVL72资源，确立了高溢价的服务壁垒；在推理与微调端，RunPod、Vast.ai及Salad等平台利用RTX 5090的高显存带宽优势，将算力成本压缩至企业级方案的十分之一。
+本报告将深入剖析包含Lambda、CoreWeave、Nebius、Voltage Park、RunPod、GMI Cloud等在内的数十家服务商的定价策略、硬件配置及API集成生态，为您呈现2025年末全球AI基础设施的真实全貌。
+________________
+2. 技术范式转移与市场分层逻辑
+在深入各服务商的具体定价之前，必须理解驱动2025年定价策略的三大硬件核心变量：B200、H200与RTX 5090。这三款芯片定义了当前云市场的三个平行宇宙。
+2.1 NVIDIA Blackwell B200：万亿参数时代的训练基石
+2025年末，B200已成为顶级大模型训练的入场券。其FP4精度的引入及第二代Transformer引擎，使得B200在训练吞吐量上较H100实现了代际飞跃。然而，B200的高昂成本（单卡市价超3万美元）及对液冷、高功率机架（GB200 NVL72）的依赖，导致其云端定价极其复杂。
+* 市场现状：仅少数顶级专有云（如CoreWeave, Lambda）及区域性巨头（如Nebius）有现货供应。
+* 定价逻辑：B200不再单纯按“卡”计费，更多按“节点（8卡/16卡）”或“机架（72卡）”计费，且往往伴随InfiniBand网络的捆绑销售。
+2.2 NVIDIA H200：推理市场的“黄金标准”
+凭借141GB HBM3e显存，H200解决了H100（80GB）在部署Llama 3.1 405B等超大模型时的显存瓶颈。H200的出现使得单机推理吞吐量大幅提升，从而即便在单价高于H100 30%-50%的情况下，仍能显著降低总拥有成本（TCO）。
+* 市场现状：已成为GMI Cloud、Hyperstack等新兴服务商的主力机型，供应相对充足。
+2.3 NVIDIA RTX 5090：消费级算力的“越级打击”
+2025年1月发布的RTX 5090配备32GB GDDR7显存，其显存带宽接近上一代数据中心卡，且算力足以支撑70B参数模型的量化推理及Sora级视频生成模型的微调。
+* 市场现状：在去中心化市场（DePIN）及容器化云平台（RunPod）中爆发式增长，以极低的价格（$0.30-$0.90/时）承接了大量原属于A100/A10G的中长尾需求。
+________________
+3. 核心专有AI云（Specialized Neoclouds）深度解析
+专有AI云（Neoclouds）是指专为AI工作负载设计，剥离了传统通用云冗余服务的提供商。它们在2025年主导了高性能计算市场。
+3.1 Lambda Labs
+作为AI计算领域的标杆，Lambda Labs在2025年继续领跑，其策略是从单纯的GPU租赁转向全栈AI基础设施服务。
+3.1.1 定价策略与硬件配置
+Lambda的定价结构呈现出明显的“承诺导向”。虽然其提供了按需（On-Demand）实例，但B200等稀缺资源更倾向于长期合约。
+* B200 (Blackwell): Lambda是首批上线B200的服务商之一。其按需价格定在 $5.29/小时，但针对1年预留客户提供 $3.49/小时 的优惠。这反映了B200早期的稀缺性溢价。
+* H200 (Hopper Refresh): 定价为 $3.79/小时。相比H100的 $2.49-$3.29/小时，H200的溢价合理，主要通过显存优势吸引推理客户。
+* H100: 价格已趋于稳定，PCIe版本低至 $2.49/小时，SXM版本约为 $3.29/小时。
+3.1.2 架构与API生态
+Lambda提供基于REST的API，允许开发者快速启动和销毁实例。其API设计遵循极简主义，侧重于快速交付。
+* API Base URL: https://api.lambda.ai/v1
+* 核心功能: 支持SSH密钥管理、实例类型查询、一键启动集群。
+* 文档地址: https://docs.lambda.ai/api
+3.2 CoreWeave
+CoreWeave已演变为“AI领域的Hyperscaler”，其服务对象主要为OpenAI、Mistral等顶级实验室。其基础设施以Kubernetes为原生底座，强调极致的网络性能。
+3.2.1 定价策略与硬件配置
+CoreWeave的定价通常高于市场平均水平，因为它默认包含高带宽InfiniBand网络及企业级SLA。
+* GB200 NVL72: CoreWeave是少数公开列出GB200 NVL72机架式服务的厂商，虽然具体价格通常需询价，但其B200节点价格约为 $68.80/小时（8卡节点），折合单卡约 $8.60/小时。这一高价包含了整套Quantum-2网络架构的成本。
+* H200: 8卡节点定价 $50.44/小时，折合单卡 $6.31/小时。
+* H100: 8卡节点定价 $49.24/小时，折合单卡 $6.16/小时。
+* 技术特性: CoreWeave的所有高端实例均以Kubernetes节点形式交付，支持Knative Serverless部署。
+3.2.2 架构与API生态
+CoreWeave不提供传统的虚拟机API，而是通过CoreWeave Kubernetes Service (CKS) 进行管理。用户需通过kubectl或CKS API与集群交互。
+* API Base URL: https://api.coreweave.com/v1beta1
+* 认证方式: Kubeconfig或Bearer Token。
+* 文档地址: https://docs.coreweave.com/
+3.3 Voltage Park
+Voltage Park以“裸金属（Bare Metal）”和“极致性价比”颠覆了H100市场。其拥有的24,000张H100集群主要服务于需要对硬件有完全控制权的底层开发团队。
+3.3.1 定价策略与硬件配置
+* H100 SXM: Voltage Park将H100的价格压低至 $1.99/小时（按需），这是目前市场上企业级SXM5 H100的最低价之一。其InfiniBand版本略贵，为 $2.49/小时。
+* B200: 目前处于预留阶段，尚未完全开放按需计费，主要面向长期合约客户。
+* 架构特点: 提供完全的裸金属访问权限，无虚拟化损耗，适合大规模分布式训练。
+3.3.2 架构与API生态
+* API Base URL: https://cloud-api.voltagepark.com
+* 核心功能: 提供裸金属节点的预配、重装系统及SSH访问管理。
+* 文档地址: https://docs.voltagepark.com/on-demand/api
+________________
+4. 算力市场与DePIN平台（Marketplaces & DePIN）
+对于价格敏感型用户及非关键任务（如开发测试、离线推理），算力市场提供了远低于专有云的价格。2025年，RTX 5090在这些平台上大放异彩。
+4.1 RunPod
+RunPod成功地在“社区云（Community Cloud）”和“安全云（Secure Cloud）”之间建立了桥梁，成为个人开发者和初创企业的首选。
+4.1.1 RTX 5090与B200定价
+* RTX 5090: 定价极具侵略性，最低可达 $0.89/小时。这一价格使得5090成为微调7B-30B模型的最佳性价比选择。
+* B200: 在其安全云分区，B200定价为 $5.98/小时，相比Lambda略高，但无需长期承诺。
+* H200: 定价 $3.59/小时。
+* H100 PCIe: 仅需 $1.99/小时。
+4.1.2 架构与API生态
+RunPod以容器（Pod）为核心，提供极为流畅的Docker部署体验。
+* API Base URL: https://api.runpod.io/graphql (GraphQL) 或 https://api.runpod.ai/v2 (Serverless REST)
+* 核心功能: 支持Serverless AI端点（按秒计费）、GPU Pod管理、网络卷挂载。
+* 文档地址: https://docs.runpod.io/
+4.2 Vast.ai
+Vast.ai是一个纯粹的去中心化租赁平台，允许个人和数据中心出租闲置算力。它是全球GPU价格的“地板”。
+4.2.1 极致低价分析
+* RTX 5090: 平台上出现了低至 $0.36/小时 的报价。这通常来自非Tier-3数据中心的个人节点，但在无需高SLA的场景下极具吸引力。
+* H200: 价格低至 $2.19/小时。
+* H100 SXM: 甚至有供应方报出 $1.56/小时 的价格，远低于市场均价。
+* 风险提示: 稳定性取决于具体机器的主机主（Host），无统一SLA。
+4.2.2 架构与API生态
+Vast提供功能强大的CLI工具，允许用户通过筛选器（如带宽、可靠性评分、DLPerf分数）精准匹配机器。
+* API Base URL: https://console.vast.ai/api/v0
+* 文档地址: https://docs.vast.ai/api-reference
+4.3 io.net
+io.net通过聚合全球加密矿场和闲置数据中心资源，构建了庞大的去中心化集群。
+4.3.1 定价概览
+* RTX 5090: 定价约为 $0.89/小时。
+* H200: $2.39/小时。
+* H100 PCIe: $0.89/小时（极具竞争力的价格，可能受特定代币激励影响）。
+* 架构特点: 基于Ray框架的分布式计算集群，支持一键部署Ray集群进行Python原生分布式训练。
+4.3.2 架构与API生态
+* 文档地址: https://docs.io.net/
+4.4 Salad
+Salad拥有数百万个消费级游戏PC节点，主要面向容器化的批量推理任务。
+4.4.1 消费级算力定价
+* RTX 5090: 定价约为 $0.25/小时（需注意其节点通常不可用于长时间连续训练，更适合短任务）。
+* RTX 4090: $0.20/小时。
+* 优势: 拥有无可比拟的规模弹性，适合图像生成、转码等高并发无状态任务。
+4.4.2 架构与API生态
+Salad的API设计完全围绕容器组（Container Groups）展开，不支持SSH交互，强调无状态服务。
+* API Base URL: https://api.salad.com/api/public
+* 文档地址: https://docs.salad.com/reference/api-usage
+________________
+5. 区域型与新兴挑战者（Regional & Emerging）
+除了美国本土巨头，全球各地的区域型云服务商通过本地化合规、数据主权及差异化硬件策略，在2025年占据了重要生态位。
+5.1 Nebius AI (欧洲/全球)
+源自Yandex云资产剥离后的Nebius，凭借强大的技术基因，在欧洲市场建立了极强的竞争力。
+5.1.1 H200/B200 激进策略
+Nebius是H200早期部署最激进的厂商之一。
+* B200: 定价 $5.50/小时。
+* H200: 按需价格 $3.50/小时，预留价格低至 $2.30/小时。
+* H100: $2.95/小时。
+* 特点: 提供可抢占实例（Preemptible），价格大幅降低（如H200可抢占版约为$1.45/小时），适合容错率高的训练任务。
+5.1.2 架构与API生态
+Nebius提供基于gRPC的高性能API，以及兼容AWS S3的对象存储，技术栈非常现代化。
+* API Endpoint: api.nebius.cloud:443
+* 文档地址: https://docs.nebius.com/grpc-api
+5.2 GMI Cloud (亚太/台湾)
+依托与台湾硬件供应链（如广达、纬创）的紧密关系，GMI Cloud在硬件交付速度上具有独特优势，主要服务亚太及全球客户。
+5.2.1 定价策略
+* H200: 定价 $2.50/小时，这是目前市场上专有云中H200的最低价之一。
+* H100: 私有云部署价格低至 $2.10/小时。
+* 优势: 垂直整合能力强，能快速响应硬件需求。
+5.2.2 架构与API生态
+* API Base URL: https://api.gmi-serving.com/v1
+* 文档地址: https://docs.gmicloud.ai/
+5.3 Hyperstack (欧洲)
+Hyperstack强调绿色能源与高性能。
+* H200: $3.50/小时。
+* H100: $1.90/小时。
+* API Base URL: https://infrahub-api.nexgencloud.com/v1
+* 文档地址: https://docs.hyperstack.cloud/
+________________
+6. 2025年全球GPU云定价综合图谱
+以下表格汇总了截至2025年12月各主要服务商的最低按需（On-Demand）时租价格。
+
+
+服务商
+	类型
+	B200 (USD/h)
+	H200 (USD/h)
+	H100 (USD/h)
+	RTX 5090 (USD/h)
+	定价页面链接
+	Lambda Labs
+	专有云
+	$5.29
+	$3.79
+	$2.49
+	N/A
+	Pricing Link
+	CoreWeave
+	专有云
+	$8.60*
+	$6.31
+	$6.16
+	N/A
+	Pricing Link
+	Nebius
+	区域云
+	$5.50
+	$3.50
+	$2.95
+	N/A
+	Pricing Link
+	RunPod
+	市场/云
+	$5.98
+	$3.59
+	$1.99
+	$0.89
+	Pricing Link
+	Voltage Park
+	裸金属
+	Contact
+	N/A
+	$1.99
+	N/A
+	Pricing Link
+	GMI Cloud
+	区域云
+	Contact
+	$2.50
+	$2.10
+	N/A
+	Pricing Link
+	Hyperstack
+	区域云
+	Contact
+	$3.50
+	$1.90
+	N/A
+	Pricing Link
+	Vast.ai
+	市场
+	N/A
+	$2.19
+	$1.56
+	$0.36
+	Pricing Link
+	io.net
+	去中心化
+	N/A
+	$2.39
+	$0.89
+	$0.89
+	Pricing Link
+	Salad
+	去中心化
+	N/A
+	N/A
+	N/A
+	$0.25
+	Pricing Link
+	Scaleway
+	区域云
+	N/A
+	Contact
+	$2.73
+	N/A
+	Pricing Link
+	Crusoe
+	专有云
+	Contact
+	Contact
+	$3.90
+	N/A
+	Pricing Link
+	*注：CoreWeave B200价格基于8卡节点总价折算。
+________________
+7. 开发者指南：API资源全集
+为了便于工程团队进行自动化集成与多云调度，以下整理了各服务商的API接入点及文档入口。
+
+
+服务商
+	API文档入口
+	Base API Endpoint
+	认证方式
+	Lambda Labs
+	docs.lambda.ai/api
+	https://api.lambda.ai/v1
+	Bearer Token
+	RunPod
+	docs.runpod.io
+	https://api.runpod.io/graphql
+	API Key
+	CoreWeave
+	docs.coreweave.com
+	https://api.coreweave.com
+	Kubeconfig
+	Voltage Park
+	docs.voltagepark.com
+	https://cloud-api.voltagepark.com
+	Bearer Token
+	Nebius
+	docs.nebius.com
+	api.nebius.cloud:443
+	IAM Token
+	GMI Cloud
+	docs.gmicloud.ai
+	https://api.gmi-serving.com/v1
+	Bearer Token
+	Vast.ai
+	docs.vast.ai
+	https://console.vast.ai/api/v0
+	API Key
+	Salad
+	docs.salad.com
+	https://api.salad.com/api/public
+	Header Key
+	Hyperstack
+	docs.hyperstack.cloud
+	https://infrahub-api.nexgencloud.com/v1
+	API Key
+	TensorDock
+	docs.tensordock.com
+	https://dashboard.tensordock.com/api/v0
+	API Key
+	Latitude.sh
+	docs.latitude.sh
+	https://api.latitude.sh
+	Bearer Token
+	Scaleway
+	developers.scaleway.com
+	https://api.scaleway.com
+	X-Auth-Token
+	Vultr
+	vultr.com/api
+	https://api.vultr.com/v2
+	Bearer Token
+	________________
+8. 深度洞察与趋势分析
+8.1 价格倒挂与“推理翻转”现象
+2025年的数据揭示了一个显著的“推理翻转”趋势。随着RTX 5090的普及，其在推理性能上（特别是对于FP8精度的支持）已能满足大量非关键业务需求。在Salad或Vast.ai上租用一张RTX 5090（$0.25-$0.36/hr）的成本仅为租用一张H100（$2.00+/hr）的1/8至1/6。对于不需要NVLink互联的单机推理任务，企业正大规模向消费级显卡集群迁移，迫使RunPod等平台在社区云和企业云之间划出清晰界限。
+8.2 B200的“贵族化”与H100的“平民化”
+虽然B200性能强劲，但其$5.00+的时租价格（CoreWeave甚至更高）与H100的$2.00区间形成了巨大断层。这表明B200目前仍处于严重的供需失衡状态，且主要被用于万亿参数模型的训练。相比之下，H100随着供应量的释放，价格已从2024年的$4.00+回落至$2.00左右，成为最具性价比的“通用训练卡”。
+8.3 API的Kubernetes化趋势
+观察CoreWeave、Nebius等高端玩家，其API不再提供简单的“开机/关机”接口，而是全面转向Managed Kubernetes服务。用户通过Kubeconfig直接操作集群，这意味着AI基础设施的使用门槛正在提高，DevOps能力成为AI团队的标配。反之，RunPod和Lambda则坚持通过简单的REST API降低门槛，服务于长尾开发者。
+8.4 区域主权云的崛起
+GMI Cloud（台湾供应链背景）、Nebius（欧洲数据中心）和Scaleway（法国）的坚挺定价表明，数据主权（Data Sovereignty）已成为核心溢价点。在GDPR和各地区AI监管趋严的背景下，客户愿意为“数据不出境”支付额外费用，这使得区域型服务商在巨头夹缝中找到了生存空间。
+9. 结论
+2025年的GPU云市场是一幅高度碎片化但又逻辑严密的图景。对于追求极致性能的大模型训练，CoreWeave和Lambda的B200集群是唯一选择；对于追求极致性价比的推理与微调，RunPod和Vast.ai上的RTX 5090提供了不可抗拒的成本优势；而对于兼顾成本与合规的中型企业，Voltage Park的廉价H100裸金属与Nebius/GMI的H200区域云则是最优解。开发者在选型时，不仅要比较单价，更需考量API的集成深度、网络互联架构（InfiniBand vs Ethernet）以及数据合规性。

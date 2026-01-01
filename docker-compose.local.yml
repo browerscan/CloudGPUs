@@ -1,0 +1,36 @@
+version: "3.8"
+
+# Local-only dependencies for development and tests.
+# Production uses external networks (Supabase + Redis) via `docker-compose.yml`.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudgpus-postgres-local
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - cloudgpus_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudgpus-redis-local
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  cloudgpus_pgdata:

@@ -1,0 +1,311 @@
+import type { Redis } from "ioredis";
+
+interface L1CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+interface L1CacheSet<T> {
+  entry: L1CacheEntry<T>;
+  pending: boolean;
+}
+
+const NEGATIVE_CACHE_TTL = 5; // seconds
+const L1_MAX_SIZE = 500;
+const L1_DEFAULT_TTL = 30; // seconds
+
+// Simple LRU-like in-memory cache
+class L1Cache<T = unknown> {
+  private cache = new Map<string, L1CacheSet<T>>();
+  private accessOrder: string[] = [];
+
+  get(key: string): T | null {
+    const set = this.cache.get(key);
+    if (!set) return null;
+
+    if (Date.now() > set.entry.expiresAt) {
+      this.delete(key);
+      return null;
+    }
+
+    // Update access order for LRU
+    this.promote(key);
+    return set.entry.data;
+  }
+
+  set(key: string, value: T, ttlSeconds: number = L1_DEFAULT_TTL): void {
+    // Enforce max size
+    if (this.cache.size >= L1_MAX_SIZE && !this.cache.has(key)) {
+      const evictKey = this.accessOrder.shift();
+      if (evictKey) this.cache.delete(evictKey);
+    }
+
+    this.cache.set(key, {
+      entry: {
+        data: value,
+        expiresAt: Date.now() + ttlSeconds * 1000,
+      },
+      pending: false,
+    });
+    this.promote(key);
+  }
+
+  setPending(key: string): void {
+    if (this.cache.size >= L1_MAX_SIZE && !this.cache.has(key)) {
+      const evictKey = this.accessOrder.shift();
+      if (evictKey) this.cache.delete(evictKey);
+    }
+
+    this.cache.set(key, {
+      entry: {
+        data: null as unknown as T,
+        expiresAt: Date.now() + 10_000, // 10 second max wait
+      },
+      pending: true,
+    });
+    this.promote(key);
+  }
+
+  isPending(key: string): boolean {
+    const set = this.cache.get(key);
+    return set?.pending ?? false;
+  }
+
+  settle(key: string, value: T, ttlSeconds: number = L1_DEFAULT_TTL): void {
+    const set = this.cache.get(key);
+    if (set) {
+      set.entry.data = value;
+      set.entry.expiresAt = Date.now() + ttlSeconds * 1000;
+      set.pending = false;
+    }
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+    const idx = this.accessOrder.indexOf(key);
+    if (idx >= 0) this.accessOrder.splice(idx, 1);
+  }
+
+  clear(): void {
+    this.cache.clear();
+    this.accessOrder = [];
+  }
+
+  has(key: string): boolean {
+    const set = this.cache.get(key);
+    if (!set) return false;
+    if (Date.now() > set.entry.expiresAt) {
+      this.delete(key);
+      return false;
+    }
+    return true;
+  }
+
+  private promote(key: string): void {
+    const idx = this.accessOrder.indexOf(key);
+    if (idx >= 0) this.accessOrder.splice(idx, 1);
+    this.accessOrder.push(key);
+  }
+
+  get size(): number {
+    // Clean expired entries
+    const now = Date.now();
+    for (const [key, set] of this.cache.entries()) {
+      if (now > set.entry.expiresAt) {
+        this.delete(key);
+      }
+    }
+    return this.cache.size;
+  }
+}
+
+// Singleton L1 cache instance
+const l1Cache = new L1Cache();
+
+export interface HierarchicalCacheOptions {
+  redis: Redis;
+  keyPrefix: string;
+  l1TtlSeconds?: number;
+  l2TtlSeconds?: number;
+  negativeCacheTtl?: number;
+}
+
+export interface FetchResult<T> {
+  data: T;
+  source: "l1" | "l2" | "fetch";
+}
+
+/**
+ * Hierarchical cache with L1 (in-memory) and L2 (Redis) layers.
+ * Prevents cache stampede with promise-based deduplication.
+ */
+export class HierarchicalCache {
+  private readonly pendingFetches = new Map<string, Promise<unknown>>();
+
+  constructor(private readonly opts: HierarchicalCacheOptions) {}
+
+  /**
+   * Get data from cache or fetch using the provided function.
+   * Implements cache stampede protection via pending fetches map.
+   */
+  async get<T>(
+    key: string,
+    fetchFn: () => Promise<T | null>,
+    options?: { skipL1?: boolean; skipL2?: boolean },
+  ): Promise<FetchResult<T> | null> {
+    const fullKey = `${this.opts.keyPrefix}:${key}`;
+
+    // Try L1 cache first
+    if (!options?.skipL1) {
+      const l1Hit = l1Cache.get<T>(fullKey);
+      if (l1Hit !== null) {
+        return { data: l1Hit, source: "l1" };
+      }
+
+      // Check if there's a pending fetch for this key
+      if (l1Cache.isPending(fullKey)) {
+        // Wait for existing fetch to complete
+        const pendingKey = fullKey;
+        if (this.pendingFetches.has(pendingKey)) {
+          const result = await this.pendingFetches.get(pendingKey);
+          if (result !== null) {
+            return { data: result as T, source: "fetch" };
+          }
+        }
+      }
+    }
+
+    // Try L2 (Redis) cache
+    if (!options?.skipL2) {
+      try {
+        if (this.opts.redis.status !== "ready") await this.opts.redis.connect();
+        const l2Hit = await this.opts.redis.get(fullKey);
+        if (l2Hit) {
+          const parsed = JSON.parse(l2Hit) as T;
+          // Promote to L1
+          l1Cache.set(fullKey, parsed, this.opts.l1TtlSeconds);
+          return { data: parsed, source: "l2" };
+        }
+      } catch {
+        // Redis failure - continue to fetch
+      }
+    }
+
+    // Cache miss - fetch with stampede protection
+    const pendingKey = fullKey;
+    l1Cache.setPending(fullKey);
+
+    try {
+      const fetchPromise = fetchFn();
+      this.pendingFetches.set(pendingKey, fetchPromise);
+
+      const data = await fetchPromise;
+
+      if (data !== null) {
+        // Cache the result
+        l1Cache.settle(fullKey, data, this.opts.l1TtlSeconds);
+        await this.setL2(fullKey, data);
+        return { data, source: "fetch" };
+      }
+
+      // Negative cache for null results (e.g., DB not found)
+      const negativeTtl = this.opts.negativeCacheTtl ?? NEGATIVE_CACHE_TTL;
+      if (negativeTtl > 0) {
+        await this.setL2(fullKey, null, negativeTtl);
+      }
+
+      return null;
+    } finally {
+      this.pendingFetches.delete(pendingKey);
+    }
+  }
+
+  /**
+   * Set a value in both L1 and L2 cache.
+   */
+  async set<T>(key: string, value: T): Promise<void> {
+    const fullKey = `${this.opts.keyPrefix}:${key}`;
+    l1Cache.set(fullKey, value, this.opts.l1TtlSeconds);
+    await this.setL2(fullKey, value);
+  }
+
+  /**
+   * Invalidate a key in both cache layers.
+   */
+  async invalidate(key: string): Promise<void> {
+    const fullKey = `${this.opts.keyPrefix}:${key}`;
+    l1Cache.delete(fullKey);
+    try {
+      if (this.opts.redis.status !== "ready") await this.opts.redis.connect();
+      await this.opts.redis.del(fullKey);
+    } catch {
+      // Best effort
+    }
+  }
+
+  /**
+   * Invalidate all keys with the prefix.
+   */
+  async invalidatePattern(pattern: string): Promise<void> {
+    // Clear L1 cache entries matching the pattern
+    const fullPattern = `${this.opts.keyPrefix}:${pattern}`;
+    for (const key of l1Cache["cache"].keys()) {
+      if (key.startsWith(fullPattern) || patternMatches(key, fullPattern)) {
+        l1Cache.delete(key);
+      }
+    }
+
+    // Clear L2 cache via SCAN
+    try {
+      if (this.opts.redis.status !== "ready") await this.opts.redis.connect();
+      const stream = this.opts.redis.scanStream({
+        match: `${this.opts.keyPrefix}:${pattern}`,
+        count: 100,
+      });
+      const keys: string[] = [];
+      for await (const key of stream) {
+        keys.push(key);
+      }
+      if (keys.length > 0) {
+        await this.opts.redis.del(...keys);
+      }
+    } catch {
+      // Best effort
+    }
+  }
+
+  /**
+   * Get cache statistics.
+   */
+  getStats() {
+    return {
+      l1Size: l1Cache.size,
+      pendingFetches: this.pendingFetches.size,
+    };
+  }
+
+  private async setL2<T>(key: string, value: T, ttl?: number): Promise<void> {
+    try {
+      if (this.opts.redis.status !== "ready") await this.opts.redis.connect();
+      const serialized = JSON.stringify(value);
+      const expiry = ttl ?? this.opts.l2TtlSeconds;
+      if (expiry > 0) {
+        await this.opts.redis.set(key, serialized, "EX", expiry);
+      } else {
+        await this.opts.redis.set(key, serialized);
+      }
+    } catch {
+      // Best effort
+    }
+  }
+}
+
+function patternMatches(key: string, pattern: string): boolean {
+  const regexPattern = pattern.replace(/\*/g, ".*").replace(/\?/g, ".");
+  return new RegExp(`^${regexPattern}$`).test(key);
+}
+
+// Create a default cache instance
+export function createHierarchicalCache(opts: HierarchicalCacheOptions): HierarchicalCache {
+  return new HierarchicalCache(opts);
+}

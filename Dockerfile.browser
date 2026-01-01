@@ -1,0 +1,43 @@
+# ===========================================
+# CloudGPUs.io Browser Worker (Playwright)
+# Multi-stage build
+# ===========================================
+
+# Build stage - reuse from main Dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache libc6-compat python3 make g++
+
+# Install dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
+
+# Copy source and build
+COPY . .
+RUN corepack enable pnpm && pnpm build:server
+
+# Production stage with Playwright
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy
+
+WORKDIR /app
+
+# Security: Create non-root user (ignore if exists)
+RUN groupadd --system --gid 1001 pwuser 2>/dev/null || true \
+    && useradd --system --uid 1001 --gid pwuser pwuser 2>/dev/null || true
+
+# Copy built assets from builder
+COPY --from=builder --chown=pwuser:pwuser /app/dist ./dist
+COPY --from=builder --chown=pwuser:pwuser /app/node_modules ./node_modules
+COPY --from=builder --chown=pwuser:pwuser /app/package.json ./
+
+# Create directories
+RUN mkdir -p screenshots && chown -R pwuser:pwuser screenshots
+
+USER pwuser
+
+ENV NODE_ENV=production
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+CMD ["node", "dist/workers/browser.js"]

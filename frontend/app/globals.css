@@ -1,0 +1,309 @@
+:root {
+  /* Colors */
+  --color-primary: #0b1220;
+  --color-primary-rgb: 11, 18, 32;
+  --color-secondary: #475569;
+  --color-muted: rgba(15, 23, 42, 0.65);
+  --color-muted-bg: rgba(15, 23, 42, 0.06);
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-strong: rgba(15, 23, 42, 0.12);
+  --color-background: #f6f8fb;
+  --color-surface: #fff;
+  --color-success: rgb(6, 95, 70);
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-success-border: rgba(16, 185, 129, 0.35);
+  --color-focus-ring: rgba(59, 130, 246, 0.5);
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  --spacing-2xl: 32px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  /* Typography */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Shadows */
+  --shadow-card: 0 10px 30px rgba(2, 6, 23, 0.06);
+  --shadow-focus: 0 0 0 3px var(--color-focus-ring);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-primary);
+  background: var(--color-background);
+}
+
+/* Focus visible styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-weight: 600;
+  z-index: 9999;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: var(--spacing-sm);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #0b1220;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btnSecondary {
+  background: #fff;
+  color: #0b1220;
+}
+
+.muted {
+  color: rgba(15, 23, 42, 0.65);
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 820px) {
+  .grid2,
+  .grid3,
+  .grid4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badgeGreen {
+  background: rgba(16, 185, 129, 0.12);
+  color: rgb(6, 95, 70);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Form input classes */
+.input,
+.select,
+.textarea {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-focus-ring);
+  box-shadow: var(--shadow-focus);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Cheapest row highlight */
+.cheapest-row {
+  background: var(--color-success-bg);
+}
+
+.cheapest-row td {
+  border-bottom-color: var(--color-success-border);
+}
+
+.cheapest-row td:first-child {
+  position: relative;
+}
+
+.cheapest-row td:first-child::before {
+  content: "Lowest Price";
+  position: absolute;
+  top: -8px;
+  left: 8px;
+  background: var(--color-success);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  cursor: pointer;
+  color: var(--color-primary);
+}
+
+.mobile-menu-toggle span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.mobile-menu-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+/* Mobile navigation */
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: block;
+  }
+
+  header nav {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    margin-top: var(--spacing-md);
+  }
+
+  header nav[aria-expanded="true"] {
+    display: flex;
+  }
+
+  header nav a {
+    padding: var(--spacing-sm) 0;
+    width: 100%;
+  }
+
+  header .container > div[style*="display: flex"][style*="gap: 10"] {
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--spacing-md);
+  }
+
+  .container {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Table accessibility improvements */
+table {
+  caption-side: bottom;
+}
+
+table caption {
+  font-size: 13px;
+  color: var(--color-muted);
+  padding: var(--spacing-md);
+  text-align: left;
+}

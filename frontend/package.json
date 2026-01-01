@@ -1,0 +1,31 @@
+{
+  "name": "cloudgpus-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "next build",
+    "start": "next start -p 4000",
+    "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:deploy": "wrangler pages deploy .vercel/output/static --project-name=cloudgpus-web",
+    "pages:preview": "wrangler pages dev .vercel/output/static"
+  },
+  "dependencies": {
+    "next": "15.5.9",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.7",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19.2.3",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "15.5.9",
+    "typescript": "^5.9.3",
+    "wrangler": "^3.99.0"
+  }
+}

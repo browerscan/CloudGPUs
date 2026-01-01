@@ -1,0 +1,25 @@
+# CloudGPUs.io Frontend - Cloudflare Pages Configuration
+# Copy to wrangler.toml and fill in your account_id
+# Or use environment variable: CLOUDFLARE_ACCOUNT_ID
+
+name = "cloudgpus-web"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# Account ID - use environment variable CLOUDFLARE_ACCOUNT_ID instead
+# account_id = "your-account-id-here"
+
+[vars]
+NEXT_PUBLIC_API_URL = "https://api.cloudgpus.io"
+
+# Build settings
+[build]
+command = "pnpm build"
+
+# Environment-specific settings
+[env.production]
+name = "cloudgpus-web"
+
+[env.preview]
+name = "cloudgpus-web-preview"

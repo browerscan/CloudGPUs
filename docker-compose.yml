@@ -1,0 +1,259 @@
+version: "3.8"
+
+# ===========================================
+# CloudGPUs.io Docker Compose Configuration
+# ===========================================
+
+x-common-env: &common-env
+  NODE_ENV: production
+  PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+  DATABASE_URI: postgresql://postgres:${DB_PASSWORD}@supabase-db:5432/postgres?schema=cloudgpus
+  REDIS_URL: redis://redis:6379/0
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+x-worker-base: &worker-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: worker
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    <<: *common-env
+  networks:
+    - supabase-tier
+    - redis-tier
+    - internal
+  depends_on:
+    api:
+      condition: service_healthy
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+        cpus: "1.0"
+      reservations:
+        memory: 256M
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "20m"
+      max-file: "3"
+
+services:
+  # ===========================================
+  # PayloadCMS API (Main Backend)
+  # ===========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: cloudgpus-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *common-env
+      VIRTUAL_HOST: api.cloudgpus.io
+      LETSENCRYPT_HOST: api.cloudgpus.io
+      LETSENCRYPT_EMAIL: ${ADMIN_EMAIL:-admin@cloudgpus.io}
+      VIRTUAL_PORT: 3000
+      CORS_ORIGINS: https://cloudgpus.io,https://www.cloudgpus.io
+      PAYLOAD_PUBLIC_SERVER_URL: https://api.cloudgpus.io
+      PAYLOAD_CONFIG_PATH: dist/payload.config.js
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - proxy-tier
+      - supabase-tier
+      - redis-tier
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 1G
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ===========================================
+  # BullMQ Workers (by queue type)
+  # ===========================================
+
+  # Pricing Worker - Fetches GPU pricing from provider APIs
+  worker-pricing:
+    <<: *worker-base
+    container_name: cloudgpus-worker-pricing
+    environment:
+      <<: *common-env
+      WORKER_QUEUES: pricing-fetch,pricing-aggregate
+      WORKER_CONCURRENCY: 5
+      LAMBDA_API_KEY: ${LAMBDA_API_KEY}
+      RUNPOD_API_KEY: ${RUNPOD_API_KEY}
+      VASTAI_API_KEY: ${VASTAI_API_KEY}
+      COREWEAVE_API_KEY: ${COREWEAVE_API_KEY}
+      NEBIUS_API_KEY: ${NEBIUS_API_KEY}
+      GMI_API_KEY: ${GMI_API_KEY}
+      VOLTAGEPARK_API_KEY: ${VOLTAGEPARK_API_KEY}
+      IONET_API_KEY: ${IONET_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "1.5"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "import(''./dist/workers/health.js'').then(m=>m.check()).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Worker - Handles provider API sync tasks
+  worker-api:
+    <<: *worker-base
+    container_name: cloudgpus-worker-api
+    environment:
+      <<: *common-env
+      WORKER_QUEUES: api-sync,provider-update
+      WORKER_CONCURRENCY: 3
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "import(''./dist/workers/health.js'').then(m=>m.check()).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Notification Worker - Sends alerts and notifications
+  worker-notify:
+    <<: *worker-base
+    container_name: cloudgpus-worker-notify
+    environment:
+      <<: *common-env
+      WORKER_QUEUES: email,webhook,slack
+      WORKER_CONCURRENCY: 10
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "import(''./dist/workers/health.js'').then(m=>m.check()).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Default Worker - Catches all other queues
+  worker-default:
+    <<: *worker-base
+    container_name: cloudgpus-worker-default
+    environment:
+      <<: *common-env
+      WORKER_QUEUES: default,maintenance,cleanup,alerts
+      WORKER_CONCURRENCY: 5
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "import(''./dist/workers/health.js'').then(m=>m.check()).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # Browser Worker (Playwright - Resource Heavy)
+  # ===========================================
+  worker-browser:
+    build:
+      context: .
+      dockerfile: Dockerfile.browser
+    container_name: cloudgpus-worker-browser
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *common-env
+      WORKER_QUEUES: browser-scrape,screenshot
+      WORKER_CONCURRENCY: 2
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      BROWSER_SANDBOX: "true"
+    volumes:
+      - ./data/screenshots:/app/screenshots
+    networks:
+      - supabase-tier
+      - redis-tier
+      - internal
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "2.0"
+        reservations:
+          memory: 2G
+    shm_size: "2gb"
+    security_opt:
+      - seccomp:unconfined
+    stop_grace_period: 60s
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "import(''./dist/workers/browser-health.js'').then(m=>m.check()).catch(()=>process.exit(1))"',
+        ]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+# ===========================================
+# Networks
+# ===========================================
+networks:
+  proxy-tier:
+    external: true
+    name: nginx-proxy_default
+  supabase-tier:
+    external: true
+    name: supabase_default
+  redis-tier:
+    external: true
+    name: redis_default
+  internal:
+    driver: bridge
+    internal: true

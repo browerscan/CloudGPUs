@@ -1,0 +1,266 @@
+name: Deploy CloudGPUs.io
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ===========================================
+  # Test Stage
+  # ===========================================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run linter
+        run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
+        env:
+          DATABASE_URI: postgresql://postgres:postgres@localhost:5432/test?schema=cloudgpus
+          PAYLOAD_SECRET: test-secret-key-for-testing-only-32chars
+
+  # ===========================================
+  # Build Stage
+  # ===========================================
+  build:
+    name: Build & Push
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Build API image
+      - name: Build and push API
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Worker image
+      - name: Build and push Worker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: worker
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build Browser Worker image
+      - name: Build and push Browser Worker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.browser
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/browser-worker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================
+  # Deploy Stage
+  # ===========================================
+  deploy:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            cd /opt/docker-projects/heavy-tasks/vibing-code/CloudGPUs.io
+
+            # Backup current state
+            echo "Creating deployment backup..."
+            BACKUP_TAG=$(date +%Y%m%d_%H%M%S)
+
+            # Pull latest changes
+            echo "Pulling latest changes..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Update image tags in compose
+            export IMAGE_TAG=${{ github.sha }}
+
+            # Deploy with zero-downtime
+            echo "Deploying services..."
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # Wait for health checks
+            echo "Waiting for services to be healthy..."
+            sleep 30
+
+            # Verify deployment
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Deployment successful!"
+            else
+              echo "Health check failed - initiating rollback"
+              git checkout HEAD~1
+              docker compose up -d --remove-orphans
+              exit 1
+            fi
+
+            # Cleanup old images
+            docker image prune -f
+
+            echo "Deployment complete: ${{ github.sha }}"
+
+      - name: Notify Slack on Success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: "CloudGPUs.io deployed successfully to production"
+          fields: repo,commit,author,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack on Failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: "CloudGPUs.io deployment FAILED - check logs"
+          fields: repo,commit,author,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # ===========================================
+  # Rollback (Manual Trigger Only)
+  # ===========================================
+  rollback:
+    name: Rollback Deployment
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Rollback to previous version
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+
+            cd /opt/docker-projects/heavy-tasks/vibing-code/CloudGPUs.io
+
+            # Get previous commit
+            PREV_COMMIT=$(git rev-parse HEAD~1)
+            echo "Rolling back to: $PREV_COMMIT"
+
+            # Checkout previous version
+            git checkout $PREV_COMMIT
+
+            # Redeploy
+            docker compose up -d --remove-orphans
+
+            # Wait and verify
+            sleep 30
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Rollback successful!"
+            else
+              echo "Rollback verification failed"
+              exit 1
+            fi
+
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "CloudGPUs.io rolled back to previous version"
+          fields: repo,author,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

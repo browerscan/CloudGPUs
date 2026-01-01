@@ -1,0 +1,39 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs (let Docker build fresh)
+dist
+cms/.next
+frontend/.next
+
+# Development
+.env
+.env.*
+!.env.example
+coverage
+*.log
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs
+docs
+*.md
+!README.md
+
+# Tests
+tests
+*.test.ts
+*.spec.ts
+vitest.config.ts
