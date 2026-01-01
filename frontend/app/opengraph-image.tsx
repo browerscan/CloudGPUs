@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-
 const SITE_NAME = "CloudGPUs.io";
 const TAGLINE = "Compare GPU Cloud Prices";
 
