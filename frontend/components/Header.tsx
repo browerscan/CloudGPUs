@@ -34,7 +34,7 @@ export function Header() {
           <button
             className="mobile-menu-toggle"
             aria-label="Toggle navigation menu"
-            aria-expanded={String(menuOpen)}
+            aria-expanded={menuOpen}
             onClick={() => setMenuOpen(!menuOpen)}
           >
             <span />
@@ -43,7 +43,7 @@ export function Header() {
           </button>
           <nav
             aria-label="Main navigation"
-            aria-expanded={String(menuOpen)}
+            data-expanded={menuOpen}
             className="muted"
             style={{ display: "flex", gap: 12, fontSize: 14 }}
           >
