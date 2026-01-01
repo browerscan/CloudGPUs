@@ -9,9 +9,9 @@
     "start": "next start -p 4000",
     "lint": "next lint",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:deploy": "wrangler pages deploy .vercel/output/static --project-name=cloudgpus-web",
-    "pages:preview": "wrangler pages dev .vercel/output/static"
+    "cf:build": "npx @opennextjs/cloudflare build",
+    "cf:deploy": "wrangler deploy",
+    "cf:preview": "wrangler dev"
   },
   "dependencies": {
     "next": "15.5.9",
@@ -19,13 +19,13 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.7",
+    "@opennextjs/cloudflare": "^1.1.0",
     "@types/node": "^20.19.27",
     "@types/react": "^19.2.3",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",
     "eslint-config-next": "15.5.9",
     "typescript": "^5.9.3",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.53.0"
   }
 }
