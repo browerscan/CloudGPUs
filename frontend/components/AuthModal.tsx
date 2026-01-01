@@ -16,8 +16,8 @@ type AuthMode = "login" | "register" | "forgot";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (user: AuthUser) => void;
-  defaultMode?: AuthMode;
+  onSuccess?: ((user: AuthUser) => void) | undefined;
+  defaultMode?: AuthMode | undefined;
 }
 
 export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: AuthModalProps) {
@@ -338,8 +338,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
 }
 
 interface AuthButtonProps {
-  onLoginSuccess?: (user: AuthUser) => void;
-  children?: React.ReactNode;
+  onLoginSuccess?: ((user: AuthUser) => void) | undefined;
+  children?: React.ReactNode | undefined;
 }
 
 export function LoginButton({ onLoginSuccess, children }: AuthButtonProps) {
