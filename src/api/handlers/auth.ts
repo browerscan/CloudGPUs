@@ -11,6 +11,7 @@ import {
   verifyAuthHeader,
   type JwtPayload,
 } from "../lib/jwt.js";
+import { logger } from "../../logger.js";
 
 export interface AuthDeps {
   pool: Pool;
@@ -142,7 +143,7 @@ export function registerHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Register error:", err);
+      logger.error({ err }, "Register error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -224,7 +225,7 @@ export function loginHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Login error:", err);
+      logger.error({ err }, "Login error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -290,7 +291,7 @@ export function magicLinkHandler(deps: AuthDeps) {
         ...(process.env["NODE_ENV"] !== "production" && { magicLink }),
       });
     } catch (err) {
-      console.error("Magic link error:", err);
+      logger.error({ err }, "Magic link error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -358,7 +359,7 @@ export function verifyEmailHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Verify error:", err);
+      logger.error({ err }, "Verify error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -430,7 +431,7 @@ export function resendVerifyHandler(deps: AuthDeps) {
         }),
       });
     } catch (err) {
-      console.error("Resend verify error:", err);
+      logger.error({ err }, "Resend verify error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -494,7 +495,7 @@ export function requestResetHandler(deps: AuthDeps) {
         }),
       });
     } catch (err) {
-      console.error("Request reset error:", err);
+      logger.error({ err }, "Request reset error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -567,7 +568,7 @@ export function resetPasswordHandler(deps: AuthDeps) {
         message: "Password reset successfully",
       });
     } catch (err) {
-      console.error("Reset password error:", err);
+      logger.error({ err }, "Reset password error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -622,7 +623,7 @@ export function getMeHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Get me error:", err);
+      logger.error({ err }, "Get me error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -673,7 +674,7 @@ export function updateMeHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Update me error:", err);
+      logger.error({ err }, "Update me error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -743,7 +744,7 @@ export function saveComparisonHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("Save comparison error:", err);
+      logger.error({ err }, "Save comparison error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -791,7 +792,7 @@ export function listComparisonsHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("List comparisons error:", err);
+      logger.error({ err }, "List comparisons error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -838,7 +839,7 @@ export function deleteComparisonHandler(deps: AuthDeps) {
         message: "Comparison deleted",
       });
     } catch (err) {
-      console.error("Delete comparison error:", err);
+      logger.error({ err }, "Delete comparison error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -897,7 +898,7 @@ export function listAlertsHandler(deps: AuthDeps) {
         },
       });
     } catch (err) {
-      console.error("List alerts error:", err);
+      logger.error({ err }, "List alerts error");
       res.status(500).json({
         status: 500,
         error: "internal_error",
@@ -945,7 +946,7 @@ export function claimAlertHandler(deps: AuthDeps) {
         message: "Alert claimed successfully",
       });
     } catch (err) {
-      console.error("Claim alert error:", err);
+      logger.error({ err }, "Claim alert error");
       res.status(500).json({
         status: 500,
         error: "internal_error",

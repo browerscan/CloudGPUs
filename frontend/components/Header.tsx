@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getCachedUser, setCachedUser, clearAuthToken, type AuthUser } from "../lib/api";
-import { AuthModal, LoginButton } from "./AuthModal";
+import { LoginButton } from "./AuthModal";
+
+const AuthModal = dynamic(() => import("./AuthModal").then((m) => ({ default: m.AuthModal })), {
+  loading: () => null,
+  ssr: false,
+});
 
 export function Header() {
   const [user, setUser] = useState<AuthUser | null>(getCachedUser());

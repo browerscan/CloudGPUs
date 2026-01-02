@@ -54,14 +54,48 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
   const [filters, setFilters] = useState<FilterState>(() => {
     if (typeof window === "undefined") return DEFAULT_FILTERS;
     const params = new URLSearchParams(window.location.search);
+
+    // Validate network type
+    const networkRaw = params.get("network");
+    const validNetworkTypes = ["all", "infiniband", "nvlink"] as const;
+    const networkType = validNetworkTypes.includes(networkRaw as (typeof validNetworkTypes)[number])
+      ? (networkRaw as FilterState["networkType"])
+      : "all";
+
+    // Validate billing increment
+    const billingRaw = params.get("billing");
+    const validBillingIncrements = ["all", "per-minute", "per-hour"] as const;
+    const billingIncrement = validBillingIncrements.includes(
+      billingRaw as (typeof validBillingIncrements)[number],
+    )
+      ? (billingRaw as FilterState["billingIncrement"])
+      : "all";
+
+    // Validate availability
+    const availabilityRaw = params.get("availability");
+    const validAvailability = ["all", "available", "limited"] as const;
+    const availability = validAvailability.includes(
+      availabilityRaw as (typeof validAvailability)[number],
+    )
+      ? (availabilityRaw as FilterState["availability"])
+      : "all";
+
+    // Validate maxPrice
     const maxPriceParam = params.get("maxPrice");
     const maxPrice: FilterState["maxPrice"] =
-      maxPriceParam && !Number.isNaN(Number(maxPriceParam)) ? Number(maxPriceParam) : "";
+      maxPriceParam && !Number.isNaN(Number(maxPriceParam)) && Number(maxPriceParam) >= 0
+        ? Number(maxPriceParam)
+        : "";
+
+    // Region is freeform text, sanitize by limiting length
+    const regionRaw = params.get("region");
+    const region = regionRaw && regionRaw.length <= 100 ? regionRaw : "all";
+
     return {
-      region: params.get("region") || "all",
-      networkType: (params.get("network") as FilterState["networkType"]) || "all",
-      billingIncrement: (params.get("billing") as FilterState["billingIncrement"]) || "all",
-      availability: (params.get("availability") as FilterState["availability"]) || "all",
+      region,
+      networkType,
+      billingIncrement,
+      availability,
       maxPrice,
       showStale: params.get("showStale") === "true",
     };
@@ -175,6 +209,23 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
     },
     null as number | null,
   );
+
+  const medianPrice = useMemo((): number | null => {
+    const prices = filteredRows
+      .map((r) => r.spot ?? r.onDemand)
+      .filter((p): p is number => p !== null)
+      .sort((a, b) => a - b);
+    if (prices.length === 0) return null;
+    const mid = Math.floor(prices.length / 2);
+    if (prices.length % 2 === 0) {
+      const left = prices[mid - 1];
+      const right = prices[mid];
+      if (left !== undefined && right !== undefined) {
+        return (left + right) / 2;
+      }
+    }
+    return prices[mid] ?? null;
+  }, [filteredRows]);
 
   return (
     <div>
@@ -437,7 +488,7 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                   return (
                     <tr
                       key={row.provider.slug}
-                      className={isCheapest ? "cheapest-row" : ""}
+                      className={`price-row${isCheapest ? " cheapest-row" : ""}`}
                       style={
                         freshness
                           ? {
@@ -447,16 +498,123 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                       }
                     >
                       <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        <div style={{ fontWeight: 700 }}>{row.provider.name}</div>
-                        <div className="muted" style={{ fontSize: 12 }}>
-                          Tier: {row.provider.reliabilityTier}
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            display: "flex",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {row.provider.name}
+                          {isCheapest && (
+                            <span
+                              style={{
+                                display: "inline-block",
+                                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                color: "white",
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: 4,
+                                marginLeft: 8,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              Best Deal
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, marginTop: 2 }}>
+                          {(() => {
+                            const tier = row.provider.reliabilityTier.toLowerCase();
+                            const tierStyles: Record<
+                              string,
+                              { bg: string; color: string; border: string }
+                            > = {
+                              enterprise: {
+                                bg: "rgba(59, 130, 246, 0.12)",
+                                color: "rgb(37, 99, 235)",
+                                border: "rgba(59, 130, 246, 0.35)",
+                              },
+                              standard: {
+                                bg: "rgba(107, 114, 128, 0.12)",
+                                color: "rgb(75, 85, 99)",
+                                border: "rgba(107, 114, 128, 0.35)",
+                              },
+                              community: {
+                                bg: "rgba(249, 115, 22, 0.12)",
+                                color: "rgb(194, 65, 12)",
+                                border: "rgba(249, 115, 22, 0.35)",
+                              },
+                              depin: {
+                                bg: "rgba(249, 115, 22, 0.12)",
+                                color: "rgb(194, 65, 12)",
+                                border: "rgba(249, 115, 22, 0.35)",
+                              },
+                            };
+                            const style = tierStyles[tier] ?? tierStyles.standard;
+                            if (!style) return null;
+                            return (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  background: style.bg,
+                                  color: style.color,
+                                  border: `1px solid ${style.border}`,
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                {row.provider.reliabilityTier}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </td>
                       <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
                         {formatUsdPerHour(row.onDemand)}
                       </td>
                       <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        {formatUsdPerHour(row.spot)}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {formatUsdPerHour(row.spot)}
+                          {(() => {
+                            const price = row.spot ?? row.onDemand;
+                            if (price === null || medianPrice === null || medianPrice <= 0)
+                              return null;
+                            const savingsPercent = Math.round(
+                              ((medianPrice - price) / medianPrice) * 100,
+                            );
+                            if (savingsPercent < 15) return null;
+                            return (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  background: "rgba(16, 185, 129, 0.12)",
+                                  color: "rgb(6, 95, 70)",
+                                  border: "1px solid rgba(16, 185, 129, 0.35)",
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: "2px 5px",
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {savingsPercent}% below avg
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </td>
                       <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
                         <div style={{ fontSize: 13 }}>
@@ -521,9 +679,33 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                         <a
                           className="btn"
                           href={affiliateClickUrl({ providerSlug: row.provider.slug, gpuSlug })}
-                          rel="nofollow"
+                          target="_blank"
+                          rel="noopener nofollow"
+                          style={
+                            isCheapest
+                              ? {
+                                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                                  borderColor: "#16a34a",
+                                }
+                              : undefined
+                          }
                         >
-                          View offer
+                          {isCheapest ? "Get This Deal" : "View offer"}
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            style={{ marginLeft: 4 }}
+                          >
+                            <path
+                              d="M3.5 2.5H9.5V8.5M9.5 2.5L2.5 9.5"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
                         </a>
                       </td>
                     </tr>

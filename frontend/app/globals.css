@@ -307,3 +307,32 @@ table caption {
   padding: var(--spacing-md);
   text-align: left;
 }
+
+/* Price table row hover states */
+.price-row {
+  transition: background-color 0.15s ease;
+}
+
+.price-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.price-row:hover .btn {
+  transform: scale(1.02);
+  transition: transform 0.15s ease;
+}
+
+.cheapest-row:hover {
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.cheapest-row .btn {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-color: #16a34a;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

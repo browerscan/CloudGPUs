@@ -15,6 +15,8 @@ const nextConfig = {
         hostname: "api.cloudgpus.io",
       },
     ],
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 86400,
   },
   async redirects() {
     return [

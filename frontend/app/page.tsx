@@ -3,7 +3,7 @@ import { getCheapestToday, listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 import { JsonLd } from "@/components/JsonLd";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 // Most searched GPUs based on industry trends
 const MOST_SEARCHED_GPUS = ["h100-sxm", "a100-80gb", "rtx-4090", "h200-sxm", "l40s", "rtx-5090"];

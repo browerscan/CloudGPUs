@@ -7,7 +7,7 @@ import { seoGpuSlug } from "@/lib/aliases";
 import { formatRelativeTime, formatUsdPerHour } from "@/lib/format";
 import { REGION_PAGES } from "@/lib/pseo";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   return REGION_PAGES.map((r) => ({ slug: r.slug }));

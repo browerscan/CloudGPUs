@@ -1,10 +1,33 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
 import { PriceAlertForm } from "@/components/PriceAlertForm";
-import { PriceTable } from "@/components/PriceTable";
 import { Sparkline } from "@/components/Sparkline";
+
+const PriceTable = dynamic(
+  () => import("@/components/PriceTable").then((m) => ({ default: m.PriceTable })),
+  {
+    loading: () => (
+      <div className="card" style={{ padding: 32, textAlign: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              border: "2px solid rgba(15, 23, 42, 0.1)",
+              borderTopColor: "#3b82f6",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+          <span className="muted">Loading prices...</span>
+        </div>
+      </div>
+    ),
+  },
+);
 import { SocialProof } from "@/components/SocialProof";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { comparePrices, getGpuModel, listGpuModels, priceHistory } from "@/lib/api";
@@ -13,7 +36,7 @@ import { generateGpuFaqs, generateGpuIntro } from "@/lib/content";
 import { env } from "@/lib/env";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   try {
@@ -70,10 +93,11 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
   const normalized = normalizeGpuSlug(slug);
   const canonical = seoGpuSlug(normalized);
   if (slug !== canonical) redirect(`/cloud-gpu/${canonical}`);
-  const [gpu, compare, history] = await Promise.all([
+  const [gpu, compare, history, allGpuModels] = await Promise.all([
     getGpuModel(normalized),
     comparePrices(canonical),
     priceHistory(canonical, 90).catch(() => null),
+    listGpuModels().catch(() => ({ docs: [] })),
   ]);
 
   const intro = generateGpuIntro(gpu, compare);
@@ -90,28 +114,15 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
     Object.values(u.recommendations).includes(gpu.slug),
   ).slice(0, 6);
 
-  // Find alternative GPUs with similar VRAM
-  const alternatives = await Promise.all(
-    [0.75, 1.25, 1.5].map(async (factor) => {
-      try {
-        const targetVram = Math.round(gpu.vram_gb * factor);
-        const gpus = await listGpuModels();
-        const alternatives = gpus.docs
-          .filter((g) => g.slug !== gpu.slug && Math.abs(g.vram_gb - targetVram) < 8)
-          .slice(0, 2);
-        return alternatives;
-      } catch {
-        return [];
-      }
-    }),
-  ).then((results) => {
-    const seen = new Set<string>();
-    return results.flat().filter((g) => {
-      if (seen.has(g.slug)) return false;
-      seen.add(g.slug);
-      return true;
-    });
-  });
+  // Find alternative GPUs with similar VRAM (filter locally to avoid N+1 queries)
+  const alternatives = [0.75, 1.25, 1.5]
+    .flatMap((factor) => {
+      const targetVram = Math.round(gpu.vram_gb * factor);
+      return allGpuModels.docs
+        .filter((g) => g.slug !== gpu.slug && Math.abs(g.vram_gb - targetVram) < 8)
+        .slice(0, 2);
+    })
+    .filter((g, i, arr) => arr.findIndex((x) => x.slug === g.slug) === i);
 
   // Related comparisons based on GPU architecture/tier
   const relatedComparisons = [

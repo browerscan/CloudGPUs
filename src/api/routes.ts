@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Pool } from "pg";
 import type { Redis } from "ioredis";
+import rateLimit from "express-rate-limit";
 import { healthHandler } from "./handlers/health.js";
 import { listProvidersHandler, getProviderHandler } from "./handlers/providers.js";
 import { listGpuModelsHandler, getGpuModelHandler } from "./handlers/gpu-models.js";
@@ -41,6 +42,16 @@ import {
   withAuth,
 } from "./handlers/auth.js";
 import { compose } from "./async.js";
+
+// Strict rate limiter for auth endpoints
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // 10 attempts per 15 min
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication attempts. Please try again later." },
+  keyGenerator: (req) => req.ip || req.headers["x-forwarded-for"]?.toString() || "unknown",
+});
 
 export function registerApiRoutes(app: Express, deps: { pool: Pool; redis: Redis }) {
   app.get("/api/health", asyncHandler(healthHandler(deps)));
@@ -124,14 +135,34 @@ export function registerApiRoutes(app: Express, deps: { pool: Pool; redis: Redis
   app.get("/api/affiliate/click", asyncHandler(affiliateClickHandler(deps.pool)));
   app.get("/api/affiliate/postback", asyncHandler(affiliatePostbackHandler(deps.pool)));
 
-  // Authentication endpoints
-  app.post("/api/auth/register", asyncHandler(registerHandler({ pool: deps.pool })));
-  app.post("/api/auth/login", asyncHandler(loginHandler({ pool: deps.pool })));
-  app.post("/api/auth/magic-link", asyncHandler(magicLinkHandler({ pool: deps.pool })));
+  // Authentication endpoints (with strict rate limiting)
+  app.post(
+    "/api/auth/register",
+    authRateLimiter,
+    asyncHandler(registerHandler({ pool: deps.pool })),
+  );
+  app.post("/api/auth/login", authRateLimiter, asyncHandler(loginHandler({ pool: deps.pool })));
+  app.post(
+    "/api/auth/magic-link",
+    authRateLimiter,
+    asyncHandler(magicLinkHandler({ pool: deps.pool })),
+  );
   app.get("/api/auth/verify", asyncHandler(verifyEmailHandler({ pool: deps.pool })));
-  app.post("/api/auth/resend-verify", asyncHandler(resendVerifyHandler({ pool: deps.pool })));
-  app.post("/api/auth/request-reset", asyncHandler(requestResetHandler({ pool: deps.pool })));
-  app.post("/api/auth/reset-password", asyncHandler(resetPasswordHandler({ pool: deps.pool })));
+  app.post(
+    "/api/auth/resend-verify",
+    authRateLimiter,
+    asyncHandler(resendVerifyHandler({ pool: deps.pool })),
+  );
+  app.post(
+    "/api/auth/request-reset",
+    authRateLimiter,
+    asyncHandler(requestResetHandler({ pool: deps.pool })),
+  );
+  app.post(
+    "/api/auth/reset-password",
+    authRateLimiter,
+    asyncHandler(resetPasswordHandler({ pool: deps.pool })),
+  );
 
   // Protected user endpoints (require authentication)
   const withAuthMiddleware = withAuth({ pool: deps.pool });

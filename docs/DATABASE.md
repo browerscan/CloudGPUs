@@ -662,6 +662,18 @@ COMMENT ON TABLE cloudgpus.content_pages IS 'Generated pSEO content pages for GP
 | price_history | idx_price_history_brin        | Range scans on time       | BRIN             |
 | scrape_jobs   | idx_scrape_jobs_status        | Active job monitoring     | Partial B-tree   |
 
+### 3.1.1 Performance Indexes
+
+The following indexes are created for query optimization:
+
+| Index                         | Table         | Purpose                                        |
+| ----------------------------- | ------------- | ---------------------------------------------- |
+| `idx_instances_compare_query` | instances     | Optimizes DISTINCT ON provider with GPU filter |
+| `idx_price_history_gpu_agg`   | price_history | Covering index for aggregation queries         |
+| `idx_instances_regions_gin`   | instances     | GIN index for array containment                |
+| `idx_providers_slug_covering` | providers     | Covering index for slug lookups                |
+| `idx_instances_provider_gpu`  | instances     | Optimizes provider+GPU combo queries           |
+
 ### 3.2 Partitioning Strategy for price_history
 
 For high-volume deployments (>1M rows/month), implement range partitioning:
