@@ -1,4 +1,4 @@
-name: Deploy CloudGPUs.io
+name: CI/CD CloudGPUs.io
 
 on:
   push:
@@ -6,16 +6,8 @@ on:
     paths-ignore:
       - "*.md"
       - "docs/**"
+      - "frontend/**"
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Deployment environment"
-        required: true
-        default: "production"
-        type: choice
-        options:
-          - production
-          - staging
 
 env:
   REGISTRY: ghcr.io
@@ -37,9 +29,9 @@ jobs:
           node-version: "20"
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 9
 
       - name: Get pnpm store directory
         shell: bash
@@ -55,7 +47,7 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Run type check
         run: pnpm typecheck
@@ -112,7 +104,7 @@ jobs:
           file: ./Dockerfile
           target: production
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -124,7 +116,7 @@ jobs:
           file: ./Dockerfile
           target: worker
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -135,132 +127,22 @@ jobs:
           context: .
           file: ./Dockerfile.browser
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/browser-worker:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/browser-worker:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/browser-worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ===========================================
-  # Deploy Stage
-  # ===========================================
-  deploy:
-    name: Deploy to Production
-    needs: build
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
-
-            cd /opt/docker-projects/heavy-tasks/vibing-code/CloudGPUs.io
-
-            # Backup current state
-            echo "Creating deployment backup..."
-            BACKUP_TAG=$(date +%Y%m%d_%H%M%S)
-
-            # Pull latest changes
-            echo "Pulling latest changes..."
-            git fetch origin main
-            git reset --hard origin/main
-
-            # Update image tags in compose
-            export IMAGE_TAG=${{ github.sha }}
-
-            # Deploy with zero-downtime
-            echo "Deploying services..."
-            docker compose pull
-            docker compose up -d --remove-orphans
-
-            # Wait for health checks
-            echo "Waiting for services to be healthy..."
-            sleep 30
-
-            # Verify deployment
-            if curl -sf http://localhost:3000/api/health > /dev/null; then
-              echo "Deployment successful!"
-            else
-              echo "Health check failed - initiating rollback"
-              git checkout HEAD~1
-              docker compose up -d --remove-orphans
-              exit 1
-            fi
-
-            # Cleanup old images
-            docker image prune -f
-
-            echo "Deployment complete: ${{ github.sha }}"
-
-      - name: Notify Slack on Success
-        if: success()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: success
-          text: "CloudGPUs.io deployed successfully to production"
-          fields: repo,commit,author,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Notify Slack on Failure
-        if: failure()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: failure
-          text: "CloudGPUs.io deployment FAILED - check logs"
-          fields: repo,commit,author,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-  # ===========================================
-  # Rollback (Manual Trigger Only)
-  # ===========================================
-  rollback:
-    name: Rollback Deployment
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rollback'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Rollback to previous version
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            set -e
-
-            cd /opt/docker-projects/heavy-tasks/vibing-code/CloudGPUs.io
-
-            # Get previous commit
-            PREV_COMMIT=$(git rev-parse HEAD~1)
-            echo "Rolling back to: $PREV_COMMIT"
-
-            # Checkout previous version
-            git checkout $PREV_COMMIT
-
-            # Redeploy
-            docker compose up -d --remove-orphans
-
-            # Wait and verify
-            sleep 30
-            if curl -sf http://localhost:3000/api/health > /dev/null; then
-              echo "Rollback successful!"
-            else
-              echo "Rollback verification failed"
-              exit 1
-            fi
-
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: "CloudGPUs.io rolled back to previous version"
-          fields: repo,author,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      - name: Summary
+        run: |
+          echo "## Docker Images Built" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Tag |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| API | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Worker | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/worker:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser Worker | \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/browser-worker:${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To deploy on VPS:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:latest" >> $GITHUB_STEP_SUMMARY
+          echo "docker compose up -d" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
