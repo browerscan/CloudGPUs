@@ -43,6 +43,7 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder --chown=payload:nodejs /app/dist ./dist
 COPY --from=builder --chown=payload:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=payload:nodejs /app/package.json ./
+COPY --from=builder --chown=payload:nodejs /app/migrations ./migrations
 
 # Create directories
 RUN mkdir -p uploads logs && chown -R payload:nodejs uploads logs

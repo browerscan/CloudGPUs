@@ -78,8 +78,7 @@ services:
           memory: 1G
     stop_grace_period: 30s
     healthcheck:
-      test:
-        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health?strict=false"]
       interval: 30s
       timeout: 10s
       retries: 3

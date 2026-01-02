@@ -3,14 +3,21 @@ import Link from "next/link";
 import { CompareBuilder } from "@/components/CompareBuilder";
 import { listGpuModels, listProviders } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
+import { JsonLd } from "@/components/JsonLd";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Compare GPU clouds and GPUs",
+  title: "Compare Cloud GPU Providers & GPUs - H100 vs A100, Lambda vs RunPod",
   description:
-    "Compare GPU cloud providers (pricing + features) or compare two GPUs (specs + live price ranges). Includes verdicts, tables, and internal links to detail pages.",
+    "Side-by-side GPU cloud comparisons with real pricing data. Compare H100 vs A100 ($2-4/hr vs $1-2/hr), Lambda Labs vs RunPod, and 50+ provider/GPU combinations.",
   alternates: { canonical: "/compare" },
+  openGraph: {
+    title: "Compare Cloud GPU Providers & GPUs - H100 vs A100, Lambda vs RunPod",
+    description:
+      "Side-by-side GPU cloud comparisons with real pricing data. Compare H100 vs A100, Lambda Labs vs RunPod, and 50+ combinations.",
+    url: "https://cloudgpus.io/compare",
+  },
 };
 
 const FEATURED_PROVIDER_COMPARISONS = (
@@ -111,8 +118,68 @@ export default async function CompareHubPage() {
         </div>
       </section>
 
+      {/* SEO Content Section */}
+      <section className="card" style={{ marginTop: 24, padding: 24 }}>
+        <h2 style={{ marginTop: 0, fontSize: 20 }}>How to Compare Cloud GPUs and Providers</h2>
+
+        <div style={{ lineHeight: 1.8, fontSize: 15 }}>
+          <p>
+            Effective GPU comparison requires looking beyond headline prices. I focus on four
+            dimensions: raw pricing, total cost of ownership, performance characteristics, and
+            reliability guarantees.
+          </p>
+
+          <h3 style={{ marginTop: 24 }}>GPU Comparison: What Matters Most</h3>
+          <p>
+            <strong>VRAM Capacity:</strong> The primary differentiator for AI workloads. H100 SXM
+            (80GB) vs A100 80GB are comparable, but the H200 (141GB) enables single-GPU inference
+            for 70B models that would require multi-GPU setups otherwise.
+          </p>
+
+          <p>
+            <strong>Memory Bandwidth:</strong> H100 delivers 3.35 TB/s vs A100 at 2.0 TB/s. For
+            memory-bound workloads (most LLM inference), this 67% advantage directly translates to
+            faster token generation.
+          </p>
+
+          <p>
+            <strong>Interconnect:</strong> For multi-GPU training, NVLink bandwidth matters. H100
+            SXM offers 900 GB/s vs A100 at 600 GB/s. PCIe GPUs (including RTX 4090) are limited to
+            64 GB/s, making distributed training 5-10x less efficient.
+          </p>
+
+          <p>
+            <strong>Price/Performance:</strong> A100 80GB often delivers better value than H100 for
+            workloads that do not benefit from H100 specific features (FP8, Transformer Engine). RTX
+            4090 offers the best tokens-per-dollar for inference when single-GPU capacity suffices.
+          </p>
+
+          <h3 style={{ marginTop: 24 }}>Provider Comparison: Beyond Hourly Rates</h3>
+          <p>
+            <strong>Billing Increments:</strong> Lambda Labs bills per-second; some providers
+            require hourly minimums. For short jobs, this difference matters significantly.
+          </p>
+
+          <p>
+            <strong>Spot Availability:</strong> RunPod and Vast.ai offer extensive spot capacity at
+            50-70% discounts. CoreWeave and Lambda Labs have more limited spot options but better
+            reliability.
+          </p>
+
+          <p>
+            <strong>Multi-GPU Pricing:</strong> 8x H100 nodes are not simply 8x the single-GPU
+            price. Check node-level pricing for distributed training workloads.
+          </p>
+
+          <p>
+            <strong>Hidden Costs:</strong> Some providers charge for egress, storage, or networking
+            separately. Factor these into total cost calculations for data-intensive workloads.
+          </p>
+        </div>
+      </section>
+
       <section className="card" style={{ marginTop: 18, padding: 18 }}>
-        <h2 style={{ marginTop: 0, fontSize: 18 }}>Related pages</h2>
+        <h2 style={{ marginTop: 0, fontSize: 18 }}>Related Pages</h2>
         <div className="muted" style={{ lineHeight: 1.8 }}>
           <div>
             Not sure which GPU fits your workload? Start with{" "}
@@ -121,6 +188,10 @@ export default async function CompareHubPage() {
           <div>
             Want raw data? Use <Link href="/cloud-gpu">GPU pricing pages</Link> or download CSV from
             the API.
+          </div>
+          <div>
+            Looking for specific providers? Browse the{" "}
+            <Link href="/provider">provider directory</Link>.
           </div>
         </div>
       </section>

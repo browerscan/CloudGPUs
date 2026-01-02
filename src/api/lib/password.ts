@@ -1,4 +1,5 @@
-import { hash, compare } from "bcrypt";
+import bcrypt from "bcrypt";
+const { hash, compare } = bcrypt;
 
 const SALT_ROUNDS = 12;
 

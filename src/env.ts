@@ -4,6 +4,13 @@ import { z } from "zod";
 const DEFAULT_NODE_ENV =
   process.env["VITEST"] === "true" ? "test" : (process.env["NODE_ENV"] ?? "development");
 
+// Transform empty strings to undefined for optional URL fields
+const optionalUrl = z
+  .string()
+  .optional()
+  .transform((v) => (v === "" ? undefined : v))
+  .pipe(z.string().url().optional());
+
 const envSchema = z.object({
   NODE_ENV: z.string().default(DEFAULT_NODE_ENV),
   LOG_LEVEL: z.string().default("info"),
@@ -32,7 +39,7 @@ const envSchema = z.object({
   // Optional integrations
   AFFILIATE_POSTBACK_SECRET: z.string().optional(),
   RATE_LIMIT_API_KEYS: z.string().optional(),
-  SLACK_WEBHOOK_URL: z.string().url().optional(),
+  SLACK_WEBHOOK_URL: optionalUrl,
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),

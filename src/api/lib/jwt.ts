@@ -1,4 +1,5 @@
-import { sign, verify } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
+const { sign, verify } = jwt;
 import { getEnv } from "../../env.js";
 
 const JWT_SECRET = () => {

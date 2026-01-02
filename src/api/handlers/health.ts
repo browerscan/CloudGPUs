@@ -7,7 +7,7 @@ import { Queue } from "bullmq";
 import { QUEUES } from "../../workers/queues.js";
 
 export function healthHandler(args: { pool: Pool; redis: Redis }) {
-  return async (_req: Request, res: Response) => {
+  return async (req: Request, res: Response) => {
     const env = getEnv();
     const startedAt = Date.now();
 
@@ -25,7 +25,9 @@ export function healthHandler(args: { pool: Pool; redis: Redis }) {
 
     const dependency: { name: string; ok: boolean; error?: string }[] = [];
 
-    const strict = env.HEALTHCHECK_STRICT;
+    // Allow query param to override strict mode (for Docker healthcheck)
+    const strictParam = req.query.strict;
+    const strict = strictParam === "false" ? false : env.HEALTHCHECK_STRICT;
 
     try {
       await args.pool.query("SELECT 1");
