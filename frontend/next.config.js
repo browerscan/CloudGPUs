@@ -6,6 +6,9 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.join(projectRoot, "..");
 
 const nextConfig = {
+  // Required for OpenNext/Cloudflare deployment
+  output: "standalone",
+
   // Silence monorepo root inference warnings.
   outputFileTracingRoot: workspaceRoot,
 
