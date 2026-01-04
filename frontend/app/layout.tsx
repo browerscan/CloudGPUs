@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { Header } from "@/components/Header";
@@ -6,7 +6,17 @@ import { OrganizationSchema } from "@/components/OrganizationSchema";
 import { WebSiteSchema } from "@/components/WebSiteSchema";
 import { CookieConsent } from "@/components/CookieConsent";
 
-const SITE_URL = "https://cloudgpus.io";
+const SITE_URL = process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://cloudgpus.io";
+const GOOGLE_VERIFICATION = process.env["NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION"];
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -36,14 +46,6 @@ export const metadata: Metadata = {
   creator: "CloudGPUs.io",
   publisher: "CloudGPUs.io",
   alternates: { canonical: "/" },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-  },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
-  ],
   openGraph: {
     type: "website",
     title: "CloudGPUs.io — Compare GPU Cloud Prices for AI Training & Inference",
@@ -54,7 +56,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "CloudGPUs.io - Compare GPU Cloud Prices",
@@ -66,7 +68,7 @@ export const metadata: Metadata = {
     title: "CloudGPUs.io — Compare GPU Cloud Prices",
     description:
       "Compare real-time cloud GPU pricing across 20+ providers. Find the best deals on H100, A100, RTX 4090 and more GPUs for AI training and inference.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
     creator: "@cloudgpusio",
   },
   robots: {
@@ -80,9 +82,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "verification-code-here",
-  },
+  verification: GOOGLE_VERIFICATION ? { google: GOOGLE_VERIFICATION } : undefined,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

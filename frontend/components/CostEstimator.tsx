@@ -45,19 +45,9 @@ export function CostEstimator({
     architecture: string;
   }>;
 }) {
-  if (gpus.length < 2) {
-    return (
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ fontWeight: 800 }}>Cost estimator unavailable</div>
-        <div className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
-          We couldn’t load the GPU catalog. Configure <code>NEXT_PUBLIC_API_BASE_URL</code> and
-          ensure the API is reachable, then refresh.
-        </div>
-      </div>
-    );
-  }
+  const hasCatalog = gpus.length >= 2;
 
-  const [gpuSlug, setGpuSlug] = useState(gpus[0]?.slug ?? "h100");
+  const [gpuSlug, setGpuSlug] = useState(() => gpus[0]?.slug ?? "");
   const [tier, setTier] = useState<string>("");
   const [useSpot, setUseSpot] = useState(true);
   const [gpuCount, setGpuCount] = useState(1);
@@ -68,6 +58,12 @@ export function CostEstimator({
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
   useEffect(() => {
+    if (!hasCatalog || !gpuSlug) {
+      setData(null);
+      setStatus("idle");
+      return;
+    }
+
     let cancelled = false;
     async function run() {
       setStatus("loading");
@@ -92,7 +88,7 @@ export function CostEstimator({
     return () => {
       cancelled = true;
     };
-  }, [gpuSlug, tier]);
+  }, [gpuSlug, tier, hasCatalog]);
 
   const selected = useMemo(() => {
     if (!data) return null;
@@ -133,6 +129,18 @@ export function CostEstimator({
     if (!Number.isFinite(gpuCount) || gpuCount <= 0) return null;
     return selected.price * gpuCount * 24 * 30 * utilization;
   }, [selected, gpuCount, utilization]);
+
+  if (!hasCatalog) {
+    return (
+      <div className="card" style={{ padding: 16 }}>
+        <div style={{ fontWeight: 800 }}>Cost estimator unavailable</div>
+        <div className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+          We couldn’t load the GPU catalog. Configure <code>NEXT_PUBLIC_API_BASE_URL</code> and
+          ensure the API is reachable, then refresh.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid2" style={{ alignItems: "start" }}>

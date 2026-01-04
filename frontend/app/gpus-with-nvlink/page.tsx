@@ -51,7 +51,7 @@ export default async function GpusWithNvlinkPage() {
     }>;
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[has_nvlink][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 600 } },
   );
 
   // Group by GPU slug
@@ -223,7 +223,7 @@ export default async function GpusWithNvlinkPage() {
         <h2 style={{ marginTop: 0, fontSize: 18 }}>About NVLink for GPU Computing</h2>
         <div className="muted" style={{ lineHeight: 1.8 }}>
           <p style={{ marginTop: 0 }}>
-            NVLink is NVIDIA's proprietary high-speed interconnect that allows GPUs to communicate
+            NVLink is NVIDIA&apos;s proprietary high-speed interconnect that allows GPUs to communicate
             directly with each other, bypassing the PCIe bus and CPU. This architecture provides
             several critical advantages for multi-GPU computing:
           </p>
@@ -237,7 +237,7 @@ export default async function GpusWithNvlinkPage() {
               synchronization operations
             </li>
             <li>
-              <strong>Memory pooling:</strong> Some configurations allow GPUs to access each other's
+              <strong>Memory pooling:</strong> Some configurations allow GPUs to access each other&apos;s
               memory, effectively pooling VRAM
             </li>
             <li>
@@ -246,7 +246,7 @@ export default async function GpusWithNvlinkPage() {
             </li>
           </ul>
           <p>
-            For training large language models that don't fit on a single GPU, NVLink is essential
+            For training large language models that don&apos;t fit on a single GPU, NVLink is essential
             for tensor parallelism and pipeline parallelism. The high bandwidth enables faster
             gradient aggregation in data parallel training and more efficient tensor sharding in
             model parallel training. NVLink is typically found on SXM and NVL form factor GPUs like
@@ -349,7 +349,7 @@ export default async function GpusWithNvlinkPage() {
             </p>
             <p>
               <strong>High-speed inference:</strong> Multi-GPU inference with tensor parallelism
-              benefits from NVLink's low latency.
+              benefits from NVLink&apos;s low latency.
             </p>
             <p style={{ marginBottom: 0 }}>
               <strong>Memory pooling:</strong> Some NVLink configurations allow accessing VRAM from

@@ -232,7 +232,7 @@ export async function listGpuModels() {
 
 export async function listProviders() {
   return apiGet<PaginatedResponse<Provider>>("/api/providers?limit=200&sort=name", {
-    next: { revalidate: 300 },
+    next: { revalidate: 900 },
   });
 }
 
@@ -244,25 +244,25 @@ export async function getGpuModel(slug: string) {
 
 export async function getProvider(slug: string) {
   return apiGet<Provider>(`/api/providers/${encodeURIComponent(slug)}`, {
-    next: { revalidate: 300 },
+    next: { revalidate: 900 },
   });
 }
 
 export async function comparePrices(gpuSlug: string) {
   const url = `/api/compare-prices?gpuSlug=${encodeURIComponent(gpuSlug)}&includeSpot=true`;
-  return apiGet<ComparePricesResponse>(url, { next: { revalidate: 60 } });
+  return apiGet<ComparePricesResponse>(url, { next: { revalidate: 600 } });
 }
 
 export async function compareProviders(a: string, b: string) {
   const url = `/api/compare-providers?providers=${encodeURIComponent(`${a},${b}`)}`;
-  return apiGet<CompareProvidersResponse>(url, { next: { revalidate: 300 } });
+  return apiGet<CompareProvidersResponse>(url, { next: { revalidate: 900 } });
 }
 
 export async function priceHistory(gpuSlug: string, days = 30, provider?: string) {
   const params = new URLSearchParams({ gpuSlug, days: String(days) });
   if (provider) params.set("provider", provider);
   return apiGet<PriceHistoryResponse>(`/api/price-history?${params.toString()}`, {
-    next: { revalidate: 300 },
+    next: { revalidate: 1800 },
   });
 }
 
@@ -275,7 +275,7 @@ export async function getCheapestToday() {
       cheapestProvider: string;
       cheapestPricePerGpuHour: number;
     }>;
-  }>("/api/stats/cheapest", { next: { revalidate: 60 } });
+  }>("/api/stats/cheapest", { next: { revalidate: 300 } });
 }
 
 export function affiliateClickUrl(args: { providerSlug: string; gpuSlug?: string }) {

@@ -99,9 +99,9 @@ export function Header() {
                 </a>
               </>
             )}
-            <a className="btn" href="/cloud-gpu">
+            <Link className="btn" href="/cloud-gpu">
               Compare Prices
-            </a>
+            </Link>
           </div>
         </div>
       </header>

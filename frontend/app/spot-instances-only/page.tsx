@@ -50,7 +50,7 @@ export default async function SpotInstancesPage() {
     }>;
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[price_per_hour_spot][not_equals]=null&sort=price_per_hour_spot`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 600 } },
   );
 
   // Group by GPU slug and calculate savings
@@ -239,7 +239,7 @@ export default async function SpotInstancesPage() {
           <p>
             <strong>Interruption notices:</strong> Most providers give 2 minutes notice before
             interrupting a spot instance. This gives your application time to save state, checkpoint
-            training progress, or gracefully shut down. Some providers offer "capacity-optimized"
+            training progress, or gracefully shut down. Some providers offer &quot;capacity-optimized&quot;
             spot allocation that reduces interruption probability at the cost of slightly higher
             prices.
           </p>
@@ -329,7 +329,7 @@ export default async function SpotInstancesPage() {
               lower interruption risk and can be easily restarted.
             </p>
             <p>
-              <strong>Batch inference:</strong> Processing offline inference jobs where timing isn't
+              <strong>Batch inference:</strong> Processing offline inference jobs where timing isn&apos;t
               critical and work can be paused/resumed.
             </p>
             <p>
@@ -351,7 +351,7 @@ export default async function SpotInstancesPage() {
               training that handles node failures.
             </p>
             <p>
-              <strong>TensorFlow:</strong> TensorFlow's parameter server strategy and mesh
+              <strong>TensorFlow:</strong> TensorFlow&apos;s parameter server strategy and mesh
               strategies can handle worker failures with proper configuration.
             </p>
             <p>

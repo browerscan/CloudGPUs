@@ -385,7 +385,7 @@ export default async function ArchitecturePage({ params }: { params: Promise<{ s
             budget, and performance needs. Newer architectures like Blackwell and Hopper offer the
             best raw performance but come at a premium price. Ampere provides an excellent balance
             of performance and cost for most workloads, while Ada Lovelace consumer GPUs offer
-            exceptional value for inference and fine-tuning tasks that don't require enterprise
+            exceptional value for inference and fine-tuning tasks that don&apos;t require enterprise
             features.
           </p>
           <p style={{ marginBottom: 0 }}>

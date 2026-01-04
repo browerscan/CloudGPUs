@@ -36,7 +36,7 @@ import { generateGpuFaqs, generateGpuIntro } from "@/lib/content";
 import { env } from "@/lib/env";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export async function generateStaticParams() {
   try {
@@ -495,7 +495,7 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
           <div className="muted" style={{ lineHeight: 1.8 }}>
             <p style={{ marginTop: 0 }}>
               Hourly GPU prices vary because providers bundle different resources. Two offers that
-              both say "{gpu.short_name}" can differ in CPU/RAM, storage, networking (InfiniBand vs
+              both say &quot;{gpu.short_name}&quot; can differ in CPU/RAM, storage, networking (InfiniBand vs
               Ethernet), and whether the GPU is SXM or PCIe.
             </p>
             <p>

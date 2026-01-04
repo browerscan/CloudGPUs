@@ -15,7 +15,7 @@ import {
 import { normalizeGpuSlug, normalizeProviderSlug, seoGpuSlug } from "@/lib/aliases";
 import { formatUsdPerHour } from "@/lib/format";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 function splitCompareSlug(slug: string) {
   const parts = slug.split("-vs-").filter(Boolean);

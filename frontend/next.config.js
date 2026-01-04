@@ -1,12 +1,20 @@
 /** @type {import('next').NextConfig} */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.join(projectRoot, "..");
+
 const nextConfig = {
-  // For Cloudflare Workers deployment - skip ESLint during builds
+  // Silence monorepo root inference warnings.
+  outputFileTracingRoot: workspaceRoot,
+
+  // Build-time gates: keep strict by default; allow explicit opt-out for quick iteration.
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: process.env["SKIP_NEXT_LINT"] === "true",
   },
-  // Skip TypeScript errors during builds (for faster iteration)
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: process.env["SKIP_NEXT_TYPECHECK"] === "true",
   },
   images: {
     remotePatterns: [

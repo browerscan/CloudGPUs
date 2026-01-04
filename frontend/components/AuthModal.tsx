@@ -285,7 +285,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
                     fontSize: 14,
                   }}
                 >
-                  Don't have an account? Sign up
+                  Don&apos;t have an account? Sign up
                 </button>
               </div>
               <button

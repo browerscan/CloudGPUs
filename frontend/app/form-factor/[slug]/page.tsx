@@ -169,7 +169,7 @@ export default async function FormFactorPage({ params }: { params: Promise<{ slu
       last_scraped_at: string;
     }>;
   }>(`/api/instances?limit=500&depth=1&where[is_active][equals]=true&sort=price_per_gpu_hour`, {
-    next: { revalidate: 60 },
+    next: { revalidate: 600 },
   });
 
   // Filter instances by form factor patterns

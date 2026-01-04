@@ -3,7 +3,7 @@ import { getCheapestToday, listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 import { JsonLd } from "@/components/JsonLd";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 // Most searched GPUs based on industry trends
 const MOST_SEARCHED_GPUS = ["h100-sxm", "a100-80gb", "rtx-4090", "h200-sxm", "l40s", "rtx-5090"];
@@ -228,7 +228,7 @@ export default async function HomePage() {
       {/* Today's Best Deals */}
       {bestDeals.length > 0 ? (
         <section style={{ marginTop: 24 }}>
-          <h2 style={{ margin: "12px 0" }}>Today's Best Deals</h2>
+          <h2 style={{ margin: "12px 0" }}>Today&apos;s Best Deals</h2>
           <p className="muted" style={{ marginTop: 0, marginBottom: 12 }}>
             Lowest observed prices across all providers. Updated every few minutes.
           </p>

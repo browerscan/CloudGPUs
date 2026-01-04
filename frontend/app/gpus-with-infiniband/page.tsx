@@ -52,7 +52,7 @@ export default async function GpusWithInfinibandPage() {
     }>;
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[has_infiniband][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 600 } },
   );
 
   // Group by GPU slug

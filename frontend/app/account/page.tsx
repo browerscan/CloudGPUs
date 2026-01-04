@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { use } from "react";
 import {
   getCachedUser,
   clearAuthToken,
@@ -23,9 +22,10 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "comparisons" | "alerts">("overview");
   const [showAuth, setShowAuth] = useState(false);
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -43,7 +43,7 @@ export default function AccountPage() {
         setUser(null);
       })
       .finally(() => setLoading(false));
-  }, [user?.id]);
+  }, [userId]);
 
   const handleLogout = () => {
     clearAuthToken();

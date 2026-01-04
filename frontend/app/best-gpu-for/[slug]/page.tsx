@@ -7,7 +7,7 @@ import { seoGpuSlug } from "@/lib/aliases";
 import { formatUsdPerHour } from "@/lib/format";
 import { USE_CASE_PAGES } from "@/lib/pseo";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 
 async function safeGpu(slug: string) {
   try {
@@ -336,7 +336,7 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
                 configuration exceeds GPU memory, the job fails — so treat VRAM as a hard
                 constraint. For {u.name}, a common minimum is <strong>{u.minVramGb}GB+</strong>, but
                 the right number depends on model size, precision (FP16/FP8/INT8), and batch size.
-                If you're close to the limit, performance can degrade due to offloading or
+                If you&apos;re close to the limit, performance can degrade due to offloading or
                 aggressive checkpointing, which increases total runtime cost even when the hourly
                 price looks cheap.
               </p>

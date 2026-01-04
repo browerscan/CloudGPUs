@@ -35,6 +35,8 @@ const AGGRESSIVENESS_COLORS = {
   },
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function PriceAlertForm({
   gpuSlug,
   currentCheapestPrice,
@@ -76,15 +78,13 @@ export function PriceAlertForm({
     );
   }, [currentCheapestPrice]);
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
   const canSubmit = useMemo(() => {
-    if (!emailRegex.test(email.trim())) return false;
+    if (!EMAIL_REGEX.test(email.trim())) return false;
     if (!Number.isFinite(target) || target <= 0) return false;
     return true;
   }, [email, target]);
 
-  const emailError = email.trim() && !emailRegex.test(email.trim());
+  const emailError = email.trim() && !EMAIL_REGEX.test(email.trim());
   const targetError = Number.isFinite(target) && target <= 0;
   const targetAboveCurrent = currentCheapestPrice && target >= currentCheapestPrice;
 

@@ -9,7 +9,7 @@ import { affiliateClickUrl, apiGet, getProvider, listProviders, priceHistory } f
 import { seoGpuSlug } from "@/lib/aliases";
 import { formatRelativeTime } from "@/lib/format";
 
-export const revalidate = 60;
+export const revalidate = 1800;
 
 export async function generateStaticParams() {
   try {
@@ -61,7 +61,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
     }>;
   }>(
     `/api/instances?limit=200&depth=1&where[provider_id][equals]=${encodeURIComponent(provider.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 600 } },
   );
 
   const reliability = await apiGet<{

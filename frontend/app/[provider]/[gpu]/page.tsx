@@ -115,7 +115,7 @@ export default async function ProviderGpuPage({
     }>;
   }>(
     `/api/instances?limit=100&depth=1&where[provider_id][equals]=${encodeURIComponent(providerData.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 60 } },
+    { next: { revalidate: 600 } },
   );
 
   // Group instances by GPU slug
