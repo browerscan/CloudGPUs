@@ -72,6 +72,7 @@ jobs:
         run: |
           # Next.js with outputFileTracingRoot outputs to frontend/ subdirectory
           # OpenNext expects files directly in .next/standalone/.next/
+          mkdir -p .next/standalone/.next/server
           if [ -d ".next/standalone/frontend/.next" ]; then
             # Copy nested frontend/.next to standalone/.next
             cp -r .next/standalone/frontend/.next/* .next/standalone/.next/
@@ -80,7 +81,6 @@ jobs:
             cp .next/standalone/frontend/server.js .next/standalone/ 2>/dev/null || true
           fi
           # Create empty pages-manifest.json for App Router projects
-          mkdir -p .next/standalone/.next/server
           echo '{}' > .next/standalone/.next/server/pages-manifest.json
 
       - name: Build with OpenNext
