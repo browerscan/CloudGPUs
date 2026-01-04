@@ -67,9 +67,19 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: https://api.cloudgpus.io
 
-      - name: Create pages-manifest.json for App Router
+      - name: Fix standalone structure for monorepo
         working-directory: frontend
         run: |
+          # Next.js with outputFileTracingRoot outputs to frontend/ subdirectory
+          # OpenNext expects files directly in .next/standalone/.next/
+          if [ -d ".next/standalone/frontend/.next" ]; then
+            # Copy nested frontend/.next to standalone/.next
+            cp -r .next/standalone/frontend/.next/* .next/standalone/.next/
+            # Copy node_modules and other files
+            cp -r .next/standalone/frontend/node_modules .next/standalone/ 2>/dev/null || true
+            cp .next/standalone/frontend/server.js .next/standalone/ 2>/dev/null || true
+          fi
+          # Create empty pages-manifest.json for App Router projects
           mkdir -p .next/standalone/.next/server
           echo '{}' > .next/standalone/.next/server/pages-manifest.json
 
