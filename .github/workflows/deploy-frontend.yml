@@ -61,9 +61,21 @@ jobs:
           NEXT_PUBLIC_API_URL = "https://api.cloudgpus.io"
           EOF
 
+      - name: Build Next.js
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.cloudgpus.io
+
+      - name: Create pages-manifest.json for App Router
+        working-directory: frontend
+        run: |
+          mkdir -p .next/standalone/.next/server
+          echo '{}' > .next/standalone/.next/server/pages-manifest.json
+
       - name: Build with OpenNext
         working-directory: frontend
-        run: pnpm cf:build
+        run: npx @opennextjs/cloudflare build --skipNextBuild
         env:
           NEXT_PUBLIC_API_URL: https://api.cloudgpus.io
 
