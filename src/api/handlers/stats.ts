@@ -4,14 +4,7 @@ import type { Pool } from "pg";
 
 export function cheapestStatsHandler(args: { pool: Pool; redis: Redis }) {
   return async (_req: Request, res: Response) => {
-    if (args.redis.status !== "ready") await args.redis.connect();
-    const cached = await args.redis.get("stats:cheapest");
-    if (cached) {
-      res.setHeader("x-cache", "HIT");
-      res.type("application/json").send(cached);
-      return;
-    }
-
+    // Caching is handled by cacheGetJson middleware in routes.ts
     const dbRes = await args.pool.query<{
       gpu_slug: string;
       gpu_name: string;
@@ -30,6 +23,7 @@ export function cheapestStatsHandler(args: { pool: Pool; redis: Redis }) {
         JOIN cloudgpus.gpu_models g ON g.id = i.gpu_model_id
         JOIN cloudgpus.providers p ON p.id = i.provider_id
         WHERE i.is_active = true
+          AND i.price_per_gpu_hour IS NOT NULL
       )
       SELECT
         gpu_slug,
@@ -42,7 +36,7 @@ export function cheapestStatsHandler(args: { pool: Pool; redis: Redis }) {
       `,
     );
 
-    const payload = {
+    res.json({
       generatedAt: new Date().toISOString(),
       items: dbRes.rows.map((r) => ({
         gpuSlug: r.gpu_slug,
@@ -50,10 +44,6 @@ export function cheapestStatsHandler(args: { pool: Pool; redis: Redis }) {
         cheapestProvider: r.cheapest_provider,
         cheapestPricePerGpuHour: Number(r.cheapest_price_per_gpu_hour),
       })),
-    };
-
-    await args.redis.set("stats:cheapest", JSON.stringify(payload), "EX", 300);
-    res.setHeader("x-cache", "MISS");
-    res.json(payload);
+    });
   };
 }

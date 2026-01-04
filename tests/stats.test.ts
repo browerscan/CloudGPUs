@@ -57,6 +57,7 @@ describe("GET /api/stats/cheapest", () => {
         cheapestPricePerGpuHour: 2.5,
       }),
     );
-    expect(redisCalls[0]?.key).toBe("stats:cheapest");
+    // cacheGetJson middleware uses keyPrefix + originalUrl as key
+    expect(redisCalls[0]?.key).toBe("stats:cheapest:/api/stats/cheapest");
   });
 });
