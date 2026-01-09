@@ -4,7 +4,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { apiGet } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -51,7 +51,7 @@ export default async function SpotInstancesPage() {
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[price_per_hour_spot][not_equals]=null&sort=price_per_hour_spot`,
     { next: { revalidate: 600 } },
-  );
+  ).catch(() => ({ docs: [] }));
 
   // Group by GPU slug and calculate savings
   const uniqueGpus = new Map<
@@ -239,9 +239,9 @@ export default async function SpotInstancesPage() {
           <p>
             <strong>Interruption notices:</strong> Most providers give 2 minutes notice before
             interrupting a spot instance. This gives your application time to save state, checkpoint
-            training progress, or gracefully shut down. Some providers offer &quot;capacity-optimized&quot;
-            spot allocation that reduces interruption probability at the cost of slightly higher
-            prices.
+            training progress, or gracefully shut down. Some providers offer
+            &quot;capacity-optimized&quot; spot allocation that reduces interruption probability at
+            the cost of slightly higher prices.
           </p>
           <p style={{ marginBottom: 0 }}>
             <strong>Best practices for spot instances:</strong> Implement frequent checkpointing
@@ -329,8 +329,8 @@ export default async function SpotInstancesPage() {
               lower interruption risk and can be easily restarted.
             </p>
             <p>
-              <strong>Batch inference:</strong> Processing offline inference jobs where timing isn&apos;t
-              critical and work can be paused/resumed.
+              <strong>Batch inference:</strong> Processing offline inference jobs where timing
+              isn&apos;t critical and work can be paused/resumed.
             </p>
             <p>
               <strong>Experimentation:</strong> Running experiments, hyperparameter tuning, and

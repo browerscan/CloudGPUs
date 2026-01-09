@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
+import { DataFreshnessBadge } from "@/components/DataFreshnessBadge";
 import { Sparkline } from "@/components/Sparkline";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewSchema } from "@/components/ReviewSchema";
@@ -60,9 +61,9 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       last_scraped_at: string;
     }>;
   }>(
-    `/api/instances?limit=200&depth=1&where[provider_id][equals]=${encodeURIComponent(provider.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
+    `/api/instances?limit=100&depth=1&where[provider_id][equals]=${encodeURIComponent(provider.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
     { next: { revalidate: 600 } },
-  );
+  ).catch(() => ({ docs: [] }));
 
   const reliability = await apiGet<{
     provider: {
@@ -191,6 +192,14 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
   const updatedAgeHours = updatedAt
     ? (Date.now() - new Date(updatedAt).getTime()) / (1000 * 60 * 60)
     : null;
+
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${provider.name} GPU pricing`,
+    url: `https://cloudgpus.io/provider/${provider.slug}`,
+    dateModified: updatedAt ?? new Date().toISOString(),
+  };
 
   // Determine reliability badge
   const reliabilityBadge = (() => {
@@ -356,6 +365,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={faqSchema} />
       <JsonLd data={organizationSchema} />
+      <JsonLd data={webPageSchema} />
       {reviews.reviews.length > 0 && (
         <ReviewSchema itemName={provider.name} itemType="Organization" reviews={reviews.reviews} />
       )}
@@ -406,7 +416,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
               ) : null}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <DataFreshnessBadge timestamp={updatedAt ?? undefined} label="Data refreshed" />
             <Link className="btn btnSecondary" href="/provider">
               All providers
             </Link>

@@ -5,7 +5,7 @@ import { PriceTable } from "@/components/PriceTable";
 import { apiGet } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -53,7 +53,7 @@ export default async function GpusWithInfinibandPage() {
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[has_infiniband][equals]=true&sort=price_per_gpu_hour`,
     { next: { revalidate: 600 } },
-  );
+  ).catch(() => ({ docs: [] }));
 
   // Group by GPU slug
   const uniqueGpus = new Map<

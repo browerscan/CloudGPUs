@@ -31,7 +31,7 @@ const FEATURE_FILTER_PAGES = [
   { path: "spot-instances-only", priority: 0.65 },
 ] as const;
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [gpus, providers] = await Promise.all([listGpuModels(), listProviders()]).catch(() => [
@@ -127,6 +127,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: "https://cloudgpus.io/help",
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.4,
     },
     ...CALCULATOR_PAGES.map((p) => ({
       url: `https://cloudgpus.io/calculator/${p.slug}`,

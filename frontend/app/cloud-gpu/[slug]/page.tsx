@@ -30,6 +30,7 @@ const PriceTable = dynamic(
 );
 import { SocialProof } from "@/components/SocialProof";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { DataFreshnessBadge } from "@/components/DataFreshnessBadge";
 import { comparePrices, getGpuModel, listGpuModels, priceHistory } from "@/lib/api";
 import { normalizeGpuSlug, seoGpuSlug } from "@/lib/aliases";
 import { generateGpuFaqs, generateGpuIntro } from "@/lib/content";
@@ -217,11 +218,20 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
     ],
   };
 
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${gpu.name} cloud pricing`,
+    url: `https://cloudgpus.io/cloud-gpu/${canonical}`,
+    dateModified: compare.generatedAt,
+  };
+
   return (
     <div className="container">
       <JsonLd data={breadcrumbSchema} />
       <JsonLd data={faqSchema} />
       <JsonLd data={productSchema} />
+      <JsonLd data={webPageSchema} />
 
       <Breadcrumbs
         items={[
@@ -249,6 +259,7 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
             ) : null}
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <DataFreshnessBadge timestamp={compare.generatedAt} label="Data refreshed" />
             <Link className="btn btnSecondary" href="/cloud-gpu">
               All GPUs
             </Link>
@@ -495,8 +506,8 @@ export default async function CloudGpuPage({ params }: { params: Promise<{ slug:
           <div className="muted" style={{ lineHeight: 1.8 }}>
             <p style={{ marginTop: 0 }}>
               Hourly GPU prices vary because providers bundle different resources. Two offers that
-              both say &quot;{gpu.short_name}&quot; can differ in CPU/RAM, storage, networking (InfiniBand vs
-              Ethernet), and whether the GPU is SXM or PCIe.
+              both say &quot;{gpu.short_name}&quot; can differ in CPU/RAM, storage, networking
+              (InfiniBand vs Ethernet), and whether the GPU is SXM or PCIe.
             </p>
             <p>
               For cost planning, start with <strong>$/GPU‑hour</strong> and then validate billing

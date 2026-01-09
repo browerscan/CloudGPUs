@@ -44,6 +44,11 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
+  SMTP_FROM_NAME: z.string().optional(),
+  SMTP_FROM_EMAIL: z.string().optional(),
+  SUPPORT_EMAIL: z.string().optional(),
+  TOKEN_PEPPER: z.string().optional(),
+  PREFERENCES_TOKEN_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

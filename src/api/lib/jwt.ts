@@ -1,6 +1,5 @@
-import jwt from "jsonwebtoken";
+import jwt, { type SignOptions } from "jsonwebtoken";
 const { sign, verify } = jwt;
-import { getEnv } from "../../env.js";
 
 const JWT_SECRET = () => {
   const secret = process.env["JWT_SECRET"] || process.env["PAYLOAD_SECRET"];
@@ -14,17 +13,26 @@ export interface JwtPayload {
   userId: string;
   email: string;
   type: "access" | "refresh" | "verify" | "reset";
+  jti?: string | undefined;
 }
 
 /**
  * Generate an access token for authenticated requests.
- * Expires in 30 days.
  */
-export function generateAccessToken(userId: string, email: string): string {
-  return sign({ userId, email, type: "access" } satisfies JwtPayload, JWT_SECRET(), {
-    expiresIn: "30d",
+export function generateAccessToken(
+  userId: string,
+  email: string,
+  opts?: { expiresIn?: SignOptions["expiresIn"]; sessionId?: string },
+): string {
+  const signOptions: SignOptions = {
+    expiresIn: opts?.expiresIn ?? "30d",
     issuer: "cloudgpus.io",
-  });
+  };
+  return sign(
+    { userId, email, type: "access", jti: opts?.sessionId } satisfies JwtPayload,
+    JWT_SECRET(),
+    signOptions,
+  );
 }
 
 /**

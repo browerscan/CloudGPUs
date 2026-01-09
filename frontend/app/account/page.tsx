@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent } from "react";
+import Link from "next/link";
 import {
   getCachedUser,
   clearAuthToken,
@@ -9,9 +10,15 @@ import {
   getComparisons,
   getAlerts,
   deleteComparison,
+  resendVerify,
+  getSessions,
+  revokeSessionApi,
+  revokeAllSessionsApi,
+  changePassword,
   type AuthUser,
   type SavedComparison,
   type UserAlert,
+  type UserSession,
 } from "../../lib/api";
 import { AuthModal, LoginButton } from "../../components/AuthModal";
 
@@ -19,9 +26,22 @@ export default function AccountPage() {
   const [user, setUser] = useState<AuthUser | null>(getCachedUser());
   const [comparisons, setComparisons] = useState<SavedComparison[]>([]);
   const [alerts, setAlerts] = useState<UserAlert[]>([]);
+  const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "comparisons" | "alerts">("overview");
-  const [showAuth, setShowAuth] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "comparisons" | "alerts" | "security">(
+    "overview",
+  );
+  const [verifyMessage, setVerifyMessage] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessionsError, setSessionsError] = useState("");
   const userId = user?.id ?? null;
 
   useEffect(() => {
@@ -30,17 +50,19 @@ export default function AccountPage() {
       return;
     }
 
-    Promise.all([getMe(), getComparisons(), getAlerts()])
-      .then(([meRes, compRes, alertRes]) => {
+    Promise.all([getMe(), getComparisons(), getAlerts(), getSessions()])
+      .then(([meRes, compRes, alertRes, sessionRes]) => {
         setUser(meRes.data.user);
         setComparisons(compRes.data.comparisons);
         setAlerts(alertRes.data.alerts);
+        setSessions(sessionRes.data.sessions);
       })
       .catch(() => {
         // Token might be expired, clear it
         clearAuthToken();
         setCachedUser(null);
         setUser(null);
+        setSessions([]);
       })
       .finally(() => setLoading(false));
   }, [userId]);
@@ -51,6 +73,7 @@ export default function AccountPage() {
     setUser(null);
     setComparisons([]);
     setAlerts([]);
+    setSessions([]);
   };
 
   const handleDeleteComparison = async (id: string) => {
@@ -59,6 +82,80 @@ export default function AccountPage() {
       setComparisons((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       console.error("Failed to delete comparison:", err);
+    }
+  };
+
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordMessage("");
+
+    if (passwordForm.newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("New password and confirmation do not match.");
+      return;
+    }
+
+    try {
+      const res = await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      setPasswordMessage(res.message || "Password updated.");
+      clearAuthToken();
+      setCachedUser(null);
+      setUser(null);
+      setSessions([]);
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to update password.");
+    }
+  };
+
+  const refreshSessions = async () => {
+    setSessionsLoading(true);
+    setSessionsError("");
+    try {
+      const res = await getSessions();
+      setSessions(res.data.sessions);
+    } catch (err) {
+      setSessionsError(err instanceof Error ? err.message : "Failed to load sessions.");
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      await revokeSessionApi(sessionId);
+      await refreshSessions();
+    } catch (err) {
+      setSessionsError(err instanceof Error ? err.message : "Failed to revoke session.");
+    }
+  };
+
+  const handleRevokeAll = async (exceptCurrent: boolean) => {
+    try {
+      await revokeAllSessionsApi(exceptCurrent);
+      await refreshSessions();
+      if (!exceptCurrent) {
+        clearAuthToken();
+        setCachedUser(null);
+        setUser(null);
+      }
+    } catch (err) {
+      setSessionsError(err instanceof Error ? err.message : "Failed to revoke sessions.");
+    }
+  };
+
+  const handleResendVerify = async () => {
+    if (!user?.email) return;
+    setVerifyError("");
+    setVerifyMessage("");
+    try {
+      const res = await resendVerify(user.email);
+      setVerifyMessage(res.message || "Verification email sent.");
+    } catch (err) {
+      setVerifyError(err instanceof Error ? err.message : "Failed to send verification email.");
     }
   };
 
@@ -81,7 +178,6 @@ export default function AccountPage() {
           <LoginButton
             onLoginSuccess={(userData) => {
               setUser(userData);
-              setShowAuth(false);
             }}
           />
         </div>
@@ -109,6 +205,23 @@ export default function AccountPage() {
               </span>
             )}
           </p>
+          {!user.isVerified && (
+            <div style={{ marginTop: 8 }}>
+              <button onClick={handleResendVerify} className="btn btnSecondary">
+                Resend verification email
+              </button>
+              {verifyMessage && (
+                <div style={{ marginTop: 8, color: "var(--success, #3c3)", fontSize: 14 }}>
+                  {verifyMessage}
+                </div>
+              )}
+              {verifyError && (
+                <div style={{ marginTop: 8, color: "var(--error, #c33)", fontSize: 14 }}>
+                  {verifyError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <button onClick={handleLogout} className="btn btnSecondary">
           Sign Out
@@ -162,6 +275,19 @@ export default function AccountPage() {
           >
             Price Alerts ({alerts.length})
           </button>
+          <button
+            onClick={() => setActiveTab("security")}
+            style={{
+              padding: "16px 24px",
+              background: activeTab === "security" ? "var(--bg)" : "transparent",
+              border: "none",
+              borderBottom: activeTab === "security" ? "2px solid var(--link, #0066cc)" : "none",
+              cursor: "pointer",
+              fontWeight: activeTab === "security" ? 600 : 400,
+            }}
+          >
+            Security
+          </button>
         </div>
 
         <div style={{ padding: 24 }}>
@@ -192,6 +318,24 @@ export default function AccountPage() {
                   </>
                 )}
               </dl>
+
+              <div style={{ marginTop: 24 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 12 }}>Quick actions</h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                  <button className="btn btnSecondary" onClick={() => setActiveTab("comparisons")}>
+                    View saved comparisons
+                  </button>
+                  <button className="btn btnSecondary" onClick={() => setActiveTab("alerts")}>
+                    Manage price alerts
+                  </button>
+                  <Link className="btn" href="/alerts">
+                    Create a price alert
+                  </Link>
+                </div>
+                <p className="muted" style={{ marginTop: 12 }}>
+                  Stay on top of GPU price drops and keep your most useful comparisons handy.
+                </p>
+              </div>
             </div>
           )}
 
@@ -282,6 +426,146 @@ export default function AccountPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === "security" && (
+            <div style={{ display: "grid", gap: 24 }}>
+              <div>
+                <h2 style={{ fontSize: 18, marginBottom: 12 }}>Change Password</h2>
+                {passwordError && (
+                  <div style={{ marginBottom: 12, color: "var(--error, #c33)" }}>
+                    {passwordError}
+                  </div>
+                )}
+                {passwordMessage && (
+                  <div style={{ marginBottom: 12, color: "var(--success, #3c3)" }}>
+                    {passwordMessage}
+                  </div>
+                )}
+                <form onSubmit={handleChangePassword} style={{ display: "grid", gap: 12 }}>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="Current password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                    }
+                    required
+                  />
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="New password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                    }
+                    required
+                  />
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="Confirm new password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
+                    required
+                  />
+                  <button className="btn" type="submit">
+                    Update password
+                  </button>
+                </form>
+                <p className="muted" style={{ marginTop: 8 }}>
+                  Changing your password signs you out of all devices.
+                </p>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 12,
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <h2 style={{ fontSize: 18, margin: 0 }}>Recent Sessions</h2>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button className="btn btnSecondary" onClick={() => handleRevokeAll(true)}>
+                      Sign out other devices
+                    </button>
+                    <button className="btn" onClick={() => handleRevokeAll(false)}>
+                      Sign out everywhere
+                    </button>
+                  </div>
+                </div>
+                {sessionsError && (
+                  <div style={{ marginBottom: 12, color: "var(--error, #c33)" }}>
+                    {sessionsError}
+                  </div>
+                )}
+                {sessionsLoading ? (
+                  <p className="muted">Loading sessions...</p>
+                ) : sessions.length === 0 ? (
+                  <p className="muted">No recent sessions recorded.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    {sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        style={{
+                          border: "1px solid var(--border)",
+                          borderRadius: 8,
+                          padding: 14,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                            {session.userAgent || "Unknown device"}
+                          </div>
+                          <div className="muted" style={{ fontSize: 13 }}>
+                            {session.ip || "Unknown IP"} {" \u00b7 "}
+                            Last seen:{" "}
+                            {session.lastSeenAt
+                              ? new Date(session.lastSeenAt).toLocaleString()
+                              : "Unknown"}
+                            {" \u00b7 "}
+                            First seen: {new Date(session.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {session.revokedAt ? (
+                            <span style={{ fontSize: 12, color: "var(--muted, #666)" }}>
+                              Revoked
+                            </span>
+                          ) : session.isCurrent ? (
+                            <span style={{ fontSize: 12, color: "var(--success, #3c3)" }}>
+                              Current
+                            </span>
+                          ) : (
+                            <button
+                              className="btn btnSecondary"
+                              style={{ padding: "6px 12px", fontSize: 13 }}
+                              onClick={() => handleRevokeSession(session.id)}
+                            >
+                              Revoke
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

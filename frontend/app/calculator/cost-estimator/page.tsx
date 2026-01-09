@@ -6,7 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { HowToSchema } from "@/components/HowToSchema";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "GPU cloud cost estimator",

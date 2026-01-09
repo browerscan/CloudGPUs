@@ -5,7 +5,7 @@ import { listGpuModels, listProviders } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 import { JsonLd } from "@/components/JsonLd";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Compare Cloud GPU Providers & GPUs - H100 vs A100, Lambda vs RunPod",

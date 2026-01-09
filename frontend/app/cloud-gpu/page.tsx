@@ -4,7 +4,7 @@ import { listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 import { JsonLd } from "@/components/JsonLd";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Cloud GPU Pricing Comparison 2025 - H100, A100, RTX 4090 Hourly Rates",

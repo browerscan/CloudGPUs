@@ -175,6 +175,31 @@ export type AlertsResponse = {
   };
 };
 
+export type UserSession = {
+  id: string;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
+  lastSeenAt: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  isCurrent: boolean;
+};
+
+export type SessionsResponse = {
+  status: number;
+  data: {
+    sessions: UserSession[];
+  };
+};
+
+export type EmailPreferences = {
+  email: string;
+  marketingOptIn: boolean;
+  productUpdatesOptIn: boolean;
+  updatedAt: string | null;
+};
+
 // Get stored auth token
 function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -212,12 +237,17 @@ export function setCachedUser(user: AuthUser | null): void {
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   const url = new URL(path, env.apiBaseUrl);
+  const headers: Record<string, string> = {
+    ...((init?.headers as Record<string, string>) ?? {}),
+    accept: "application/json",
+  };
+  // Include API key to bypass rate limiting (for both SSG builds and runtime)
+  if (env.apiKey) {
+    headers["x-api-key"] = env.apiKey;
+  }
   const res = await fetch(url.toString(), {
     ...init,
-    headers: {
-      ...(init?.headers ?? {}),
-      accept: "application/json",
-    },
+    headers,
     next: init?.next,
   });
   if (!res.ok) throw new Error(`API ${res.status} ${path}`);
@@ -231,7 +261,7 @@ export async function listGpuModels() {
 }
 
 export async function listProviders() {
-  return apiGet<PaginatedResponse<Provider>>("/api/providers?limit=200&sort=name", {
+  return apiGet<PaginatedResponse<Provider>>("/api/providers?limit=100&sort=name", {
     next: { revalidate: 900 },
   });
 }
@@ -327,10 +357,10 @@ export async function register(email: string, password: string, name?: string) {
   });
 }
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string, rememberMe?: boolean) {
   return apiFetch<AuthResponse>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, rememberMe: rememberMe ?? false }),
   });
 }
 
@@ -338,6 +368,12 @@ export async function requestMagicLink(email: string) {
   return apiFetch<{ status: number; message: string }>("/api/auth/magic-link", {
     method: "POST",
     body: JSON.stringify({ email }),
+  });
+}
+
+export async function magicLogin(token: string) {
+  return apiFetch<AuthResponse>(`/api/auth/magic-login?token=${encodeURIComponent(token)}`, {
+    method: "GET",
   });
 }
 
@@ -369,6 +405,27 @@ export async function resetPassword(token: string, password: string) {
   });
 }
 
+export async function getEmailPreferences(token?: string) {
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  return apiFetch<{ status: number; data: EmailPreferences }>(`/api/email-preferences${query}`, {
+    method: "GET",
+  });
+}
+
+export async function updateEmailPreferences(args: {
+  token?: string | undefined;
+  marketingOptIn: boolean;
+  productUpdatesOptIn: boolean;
+}) {
+  return apiFetch<{ status: number; message: string; data: EmailPreferences }>(
+    "/api/email-preferences",
+    {
+      method: "POST",
+      body: JSON.stringify(args),
+    },
+  );
+}
+
 export async function getMe() {
   return apiFetch<MeResponse>("/api/me", { method: "GET" });
 }
@@ -377,6 +434,31 @@ export async function updateMe(name: string) {
   return apiFetch<MeResponse>("/api/me", {
     method: "PATCH",
     body: JSON.stringify({ name }),
+  });
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  return apiFetch<{ status: number; message: string }>("/api/me/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export async function getSessions() {
+  return apiFetch<SessionsResponse>("/api/me/sessions", { method: "GET" });
+}
+
+export async function revokeSessionApi(sessionId: string) {
+  return apiFetch<{ status: number; message: string }>("/api/me/sessions/revoke", {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  });
+}
+
+export async function revokeAllSessionsApi(exceptCurrent?: boolean) {
+  return apiFetch<{ status: number; message: string }>("/api/me/sessions/revoke-all", {
+    method: "POST",
+    body: JSON.stringify({ exceptCurrent: exceptCurrent === true }),
   });
 }
 

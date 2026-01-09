@@ -6,11 +6,6 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { normalizeGpuSlug, normalizeProviderSlug } from "../aliases.js";
 import { badRequest, notFound } from "../error-responses.js";
-import {
-  NotFoundError,
-  findGpuModelIdBySlug,
-  findProviderIdBySlug,
-} from "../repositories/shared.js";
 import { QUEUES } from "../../workers/queues.js";
 
 const subscribeSchema = z.object({
@@ -57,36 +52,28 @@ export function alertsSubscribeHandler(args: { pool: Pool; redis: Redis }) {
     const site = process.env["PUBLIC_SITE_URL"] ?? "https://cloudgpus.io";
 
     const gpuSlug = normalizeGpuSlug(parsed.data.gpuSlug);
-    let gpuId: string;
-    try {
-      gpuId = await findGpuModelIdBySlug(args.pool, gpuSlug);
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        notFound(res, "GPU");
-        return;
-      }
-      throw e;
-    }
-
-    // Fetch GPU details for response
-    const gpuRes = await args.pool.query<{ slug: string; name: string }>(
-      "SELECT slug, name FROM cloudgpus.gpu_models WHERE id = $1 LIMIT 1",
-      [gpuId],
+    const gpuRes = await args.pool.query<{ id: string; slug: string; name: string }>(
+      "SELECT id, slug, name FROM cloudgpus.gpu_models WHERE slug = $1 LIMIT 1",
+      [gpuSlug],
     );
-    const gpu = gpuRes.rows[0]!;
+    const gpu = gpuRes.rows[0];
+    if (!gpu) {
+      notFound(res, "GPU");
+      return;
+    }
 
     let providerId: string | null = null;
     let providerSlug: string | null = null;
     if (parsed.data.providerSlug) {
       providerSlug = normalizeProviderSlug(parsed.data.providerSlug);
-      try {
-        providerId = await findProviderIdBySlug(args.pool, providerSlug);
-      } catch (e) {
-        if (e instanceof NotFoundError) {
-          notFound(res, "Provider");
-          return;
-        }
-        throw e;
+      const providerRes = await args.pool.query<{ id: string }>(
+        "SELECT id FROM cloudgpus.providers WHERE slug = $1 LIMIT 1",
+        [providerSlug],
+      );
+      providerId = providerRes.rows[0]?.id ?? null;
+      if (!providerId) {
+        notFound(res, "Provider");
+        return;
       }
     }
 
@@ -100,13 +87,13 @@ export function alertsSubscribeHandler(args: { pool: Pool; redis: Redis }) {
       SELECT id, confirmed_at::text, confirm_token, unsubscribe_token
       FROM cloudgpus.price_alert_subscriptions
       WHERE email = $1
-        AND gpu_model_id = $2
+        AND gpu_model_id = $2::uuid
         AND provider_id IS NOT DISTINCT FROM $3::uuid
         AND is_active = true
       ORDER BY created_at DESC
       LIMIT 1
       `,
-      [parsed.data.email, gpuId, providerId],
+      [parsed.data.email, gpu.id, providerId],
     );
 
     let confirmToken = nanoid(32);
@@ -140,7 +127,7 @@ export function alertsSubscribeHandler(args: { pool: Pool; redis: Redis }) {
         `,
         [
           parsed.data.email,
-          gpuId,
+          gpu.id,
           providerId,
           parsed.data.targetPricePerGpuHour,
           confirmToken,

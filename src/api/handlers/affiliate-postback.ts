@@ -27,7 +27,7 @@ export function affiliatePostbackHandler(pool: Pool) {
   const enabled = Boolean(secret);
 
   return async (req: Request, res: Response) => {
-    // Always require authentication for financial endpoints - never bypass, even in non-production
+    // Always require authentication for financial endpoints - never bypass, even in non-production.
     if (!enabled) {
       res.status(501).json({
         status: 501,
@@ -39,8 +39,10 @@ export function affiliatePostbackHandler(pool: Pool) {
     }
 
     const headerSecret = req.get("x-affiliate-secret");
-    // Only accept secret via header for security; query string is not allowed
-    const supplied = headerSecret ?? "";
+    const querySecret = req.query["secret"];
+    const supplied =
+      (typeof headerSecret === "string" ? headerSecret : null) ??
+      (typeof querySecret === "string" ? querySecret : "");
 
     if (!supplied || !constantTimeEquals(supplied, secret)) {
       res.status(401).json({

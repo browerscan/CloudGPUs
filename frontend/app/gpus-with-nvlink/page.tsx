@@ -5,7 +5,7 @@ import { PriceTable } from "@/components/PriceTable";
 import { apiGet } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -52,7 +52,7 @@ export default async function GpusWithNvlinkPage() {
   }>(
     `/api/instances?limit=500&depth=1&where[is_active][equals]=true&where[has_nvlink][equals]=true&sort=price_per_gpu_hour`,
     { next: { revalidate: 600 } },
-  );
+  ).catch(() => ({ docs: [] }));
 
   // Group by GPU slug
   const uniqueGpus = new Map<
@@ -223,9 +223,9 @@ export default async function GpusWithNvlinkPage() {
         <h2 style={{ marginTop: 0, fontSize: 18 }}>About NVLink for GPU Computing</h2>
         <div className="muted" style={{ lineHeight: 1.8 }}>
           <p style={{ marginTop: 0 }}>
-            NVLink is NVIDIA&apos;s proprietary high-speed interconnect that allows GPUs to communicate
-            directly with each other, bypassing the PCIe bus and CPU. This architecture provides
-            several critical advantages for multi-GPU computing:
+            NVLink is NVIDIA&apos;s proprietary high-speed interconnect that allows GPUs to
+            communicate directly with each other, bypassing the PCIe bus and CPU. This architecture
+            provides several critical advantages for multi-GPU computing:
           </p>
           <ul style={{ marginBottom: 12 }}>
             <li>
@@ -237,8 +237,8 @@ export default async function GpusWithNvlinkPage() {
               synchronization operations
             </li>
             <li>
-              <strong>Memory pooling:</strong> Some configurations allow GPUs to access each other&apos;s
-              memory, effectively pooling VRAM
+              <strong>Memory pooling:</strong> Some configurations allow GPUs to access each
+              other&apos;s memory, effectively pooling VRAM
             </li>
             <li>
               <strong>Scalable:</strong> Multiple NVLinks can be aggregated for even higher
@@ -246,11 +246,11 @@ export default async function GpusWithNvlinkPage() {
             </li>
           </ul>
           <p>
-            For training large language models that don&apos;t fit on a single GPU, NVLink is essential
-            for tensor parallelism and pipeline parallelism. The high bandwidth enables faster
-            gradient aggregation in data parallel training and more efficient tensor sharding in
-            model parallel training. NVLink is typically found on SXM and NVL form factor GPUs like
-            H100 SXM, H200 SXM, B200 SXM, and GB200 NVL.
+            For training large language models that don&apos;t fit on a single GPU, NVLink is
+            essential for tensor parallelism and pipeline parallelism. The high bandwidth enables
+            faster gradient aggregation in data parallel training and more efficient tensor sharding
+            in model parallel training. NVLink is typically found on SXM and NVL form factor GPUs
+            like H100 SXM, H200 SXM, B200 SXM, and GB200 NVL.
           </p>
           <p style={{ marginBottom: 0 }}>
             When selecting NVLink instances, consider the number of GPUs per node (typically 4-8),

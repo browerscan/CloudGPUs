@@ -3,7 +3,7 @@ import Link from "next/link";
 import { listProviders } from "@/lib/api";
 import { JsonLd } from "@/components/JsonLd";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Cloud GPU Providers 2025 - Compare Lambda Labs, RunPod, CoreWeave & More",

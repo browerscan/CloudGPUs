@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
-import { apiGet } from "@/lib/api";
+import { apiGet, getProvider } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -20,29 +20,34 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function VastAiPage() {
-  // Fetch Vast.ai instances
-  const instances = await apiGet<{
-    docs: Array<{
-      id: string;
-      gpu_slug: string;
-      gpu_name: string;
-      gpu_short_name: string;
-      gpu_vram_gb: number;
-      gpu_architecture: string;
-      price_per_gpu_hour: string;
-      price_per_hour_spot: string | null;
-      instance_type: string;
-      gpu_count: number;
-      has_nvlink: boolean | null;
-      has_infiniband: boolean | null;
-      availability_status: string;
-      last_scraped_at: string;
-      min_rental_hours: number | null;
-    }>;
-  }>(
-    `/api/instances?limit=200&depth=1&where[provider_slug][equals]=vast-ai&where[is_active][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 600 } },
-  ).catch(() => ({ docs: [] }));
+  // Fetch provider first to get ID
+  const provider = await getProvider("vast-ai").catch(() => null);
+
+  // Fetch Vast.ai instances using provider_id (provider_slug filter doesn't work)
+  const instances = provider
+    ? await apiGet<{
+        docs: Array<{
+          id: string;
+          gpu_slug: string;
+          gpu_name: string;
+          gpu_short_name: string;
+          gpu_vram_gb: number;
+          gpu_architecture: string;
+          price_per_gpu_hour: string;
+          price_per_hour_spot: string | null;
+          instance_type: string;
+          gpu_count: number;
+          has_nvlink: boolean | null;
+          has_infiniband: boolean | null;
+          availability_status: string;
+          last_scraped_at: string;
+          min_rental_hours: number | null;
+        }>;
+      }>(
+        `/api/instances?limit=100&depth=1&where[provider_id][equals]=${encodeURIComponent(provider.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
+        { next: { revalidate: 600 } },
+      ).catch(() => ({ docs: [] }))
+    : { docs: [] };
 
   // Group by GPU slug
   const grouped = new Map<
@@ -220,9 +225,9 @@ export default async function VastAiPage() {
             <strong>Vast.ai</strong> is a peer-to-peer GPU marketplace founded in 2018 with a simple
             but powerful premise: connect people who have GPUs (and want to earn money from them)
             with people who need GPU computing power. Unlike traditional cloud providers that own
-            and operate their own data centers, Vast.ai&apos;s infrastructure consists of GPUs owned by
-            individuals and businesses around the world who rent out their idle capacity through the
-            platform.
+            and operate their own data centers, Vast.ai&apos;s infrastructure consists of GPUs owned
+            by individuals and businesses around the world who rent out their idle capacity through
+            the platform.
           </p>
           <p>
             This marketplace model enables <strong>dramatically lower prices</strong>. Without the
@@ -431,8 +436,8 @@ export default async function VastAiPage() {
             The price difference compared to traditional clouds is dramatic. An RTX 3090 might cost
             $3-4/hour on AWS (if available at all) but can often be found on Vast.ai for under
             $0.30/hour. Even expensive GPUs like the A100 are typically 60-80% cheaper than
-            hyperscaler alternatives. For workloads that don&apos;t require enterprise-grade reliability,
-            these savings are impossible to ignore.
+            hyperscaler alternatives. For workloads that don&apos;t require enterprise-grade
+            reliability, these savings are impossible to ignore.
           </p>
           <p style={{ marginBottom: 0 }}>
             However, users should understand that <strong>you get what you pay for</strong>. The low
@@ -528,7 +533,8 @@ export default async function VastAiPage() {
               RTX cards (RTX 4090, RTX 3090, RTX 4080) to workstation GPUs (RTX 6000 Ada) to
               datacenter hardware (A100, H100). The availability varies based on what hosts are
               currently offering. Consumer GPUs are the most abundant and cheapest, making Vast.ai
-              particularly attractive for workloads that don&apos;t require datacenter-class hardware.
+              particularly attractive for workloads that don&apos;t require datacenter-class
+              hardware.
             </div>
           </div>
           <div>
@@ -546,11 +552,12 @@ export default async function VastAiPage() {
             <div style={{ fontWeight: 800 }}>When should I use Vast.ai vs other GPU providers?</div>
             <div className="muted" style={{ marginTop: 4, lineHeight: 1.7 }}>
               Choose Vast.ai for personal projects, learning, experimentation, and any workload
-              where cost is the primary concern and reliability is less critical. It&apos;s excellent for
-              students, researchers with limited budgets, and hobbyists. For production workloads,
-              long-running training jobs without checkpointing, or applications requiring guaranteed
-              uptime, traditional cloud providers like AWS, Google Cloud, or specialized GPU clouds
-              like CoreWeave and Lambda Labs are better choices despite higher costs.
+              where cost is the primary concern and reliability is less critical. It&apos;s
+              excellent for students, researchers with limited budgets, and hobbyists. For
+              production workloads, long-running training jobs without checkpointing, or
+              applications requiring guaranteed uptime, traditional cloud providers like AWS, Google
+              Cloud, or specialized GPU clouds like CoreWeave and Lambda Labs are better choices
+              despite higher costs.
             </div>
           </div>
         </div>

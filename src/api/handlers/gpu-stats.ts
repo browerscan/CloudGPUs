@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { Pool, PoolClient } from "pg";
+import type { Pool } from "pg";
 import type { Redis } from "ioredis";
 import { getGpuModelBySlug } from "../repositories/gpu-models.js";
 

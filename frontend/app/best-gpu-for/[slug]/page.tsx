@@ -26,7 +26,8 @@ async function safePrices(slug: string) {
 }
 
 export async function generateStaticParams() {
-  return USE_CASE_PAGES.map((u) => ({ slug: u.slug }));
+  // Rely on ISR at runtime - skip pre-rendering to avoid build API dependency
+  return [];
 }
 
 export async function generateMetadata({
@@ -62,8 +63,8 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
   ]);
 
   const pickSummary = (gpuSlug: string, prices: Awaited<ReturnType<typeof safePrices>>) => {
-    const min = prices?.stats.min ?? null;
-    const provider = prices?.prices[0]?.provider?.name ?? null;
+    const min = prices?.stats?.min ?? null;
+    const provider = prices?.prices?.[0]?.provider?.name ?? null;
     return { gpuSlug, min, provider };
   };
 

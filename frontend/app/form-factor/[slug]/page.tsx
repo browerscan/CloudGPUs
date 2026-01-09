@@ -6,7 +6,7 @@ import { PriceTable } from "@/components/PriceTable";
 import { apiGet, listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export type FormFactorPage = {
   slug: string;
@@ -104,8 +104,8 @@ NVL modules are designed for exascale AI computing and are typically deployed in
 
 // Map instance names to form factors based on naming patterns
 const FORM_FACTOR_PATTERNS: Record<string, RegExp[]> = {
-  pcie: [/pcie/i, /p100/i, /v100/i, /rtx-/i, /l40/i, /a40/i],
-  sxm: [/sxm/i, /h100/i, /h200/i, /a100.*80/i, /a100.*sxm/i],
+  pcie: [/pcie/i, /p100/i, /v100(?!.*sxm)/i, /rtx-/i, /l40/i, /a40/i],
+  sxm: [/sxm/i, /\bh100(?!.*pcie)\b/i, /\bh200(?!.*pcie)\b/i, /a100.*sxm/i],
   nvl: [/nvl/i, /gb200/i],
 };
 
@@ -170,10 +170,10 @@ export default async function FormFactorPage({ params }: { params: Promise<{ slu
     }>;
   }>(`/api/instances?limit=500&depth=1&where[is_active][equals]=true&sort=price_per_gpu_hour`, {
     next: { revalidate: 600 },
-  });
+  }).catch(() => ({ docs: [] }));
 
   // Filter instances by form factor patterns
-  const filteredInstances = instances.docs.filter((inst) =>
+  const filteredInstances = (instances.docs ?? []).filter((inst) =>
     patterns.some(
       (pattern) =>
         pattern.test(inst.gpu_slug) ||

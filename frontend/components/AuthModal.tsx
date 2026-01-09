@@ -4,6 +4,8 @@ import { useState, useEffect, FormEvent } from "react";
 import {
   login,
   register,
+  requestMagicLink,
+  requestPasswordReset,
   setAuthToken,
   setCachedUser,
   clearAuthToken,
@@ -25,6 +27,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,6 +37,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
       setMode(defaultMode);
       setError("");
       setMessage("");
+      setRememberMe(false);
     }
   }, [isOpen, defaultMode]);
 
@@ -47,7 +51,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
 
     try {
       if (mode === "login") {
-        const response = await login(email, password);
+        const response = await login(email, password, rememberMe);
         setAuthToken(response.data.accessToken);
         setCachedUser(response.data.user);
         onSuccess?.(response.data.user);
@@ -65,7 +69,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
         onSuccess?.(response.data.user);
         setTimeout(() => onClose(), 1500);
       } else if (mode === "forgot") {
-        // Password reset flow
+        await requestPasswordReset(email);
         setMessage("If an account exists with this email, a password reset link will be sent.");
         setPassword("");
       }
@@ -233,7 +237,13 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
 
           {mode === "login" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
-              <input type="checkbox" id="remember" style={{ width: 16, height: 16 }} />
+              <input
+                type="checkbox"
+                id="remember"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
               <label htmlFor="remember" style={{ cursor: "pointer" }}>
                 Remember me for 30 days
               </label>
@@ -301,6 +311,38 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }:
               >
                 Forgot password?
               </button>
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setError("");
+                    setMessage("");
+                    if (!email.trim()) {
+                      setError("Enter your email to receive a magic link.");
+                      return;
+                    }
+                    setLoading(true);
+                    try {
+                      await requestMagicLink(email);
+                      setMessage("If an account exists, a magic link will be sent.");
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Failed to send magic link");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--link, #0066cc)",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    padding: 0,
+                  }}
+                >
+                  Email me a magic link
+                </button>
+              </div>
             </>
           ) : mode === "register" ? (
             <button

@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     name: string | null;
     isVerified: boolean;
   };
+  sessionId?: string;
 }
 
 export type AuthMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => void;
@@ -30,7 +31,7 @@ export function authenticate(pool: Pool): AuthMiddleware {
       }
 
       const payload = verifyAuthHeader(authHeader);
-      if (!payload) {
+      if (!payload || payload.type !== "access" || !payload.jti) {
         return res.status(401).json({
           status: 401,
           error: "unauthorized",
@@ -40,10 +41,14 @@ export function authenticate(pool: Pool): AuthMiddleware {
 
       // Fetch fresh user data from database
       const result = await pool.query(
-        `SELECT id, email, name, is_verified
-         FROM cloudgpus.users
-         WHERE id = $1 AND deleted_at IS NULL`,
-        [payload.userId],
+        `SELECT u.id, u.email, u.name, u.is_verified, s.id AS session_id, s.last_seen_at::text
+         FROM cloudgpus.users u
+         JOIN cloudgpus.user_sessions s ON s.user_id = u.id
+         WHERE u.id = $1
+           AND s.token_id = $2
+           AND s.revoked_at IS NULL
+           AND (s.expires_at IS NULL OR s.expires_at > NOW())`,
+        [payload.userId, payload.jti],
       );
 
       if (!result.rows[0]) {
@@ -60,6 +65,7 @@ export function authenticate(pool: Pool): AuthMiddleware {
         name: result.rows[0].name,
         isVerified: result.rows[0].is_verified,
       };
+      req.sessionId = result.rows[0].session_id;
 
       next();
     } catch (err) {
@@ -82,12 +88,16 @@ export function optionalAuth(pool: Pool): AuthMiddleware {
       const authHeader = req.headers["authorization"];
       if (authHeader?.startsWith("Bearer ")) {
         const payload = verifyAuthHeader(authHeader);
-        if (payload) {
+        if (payload && payload.type === "access" && payload.jti) {
           const result = await pool.query(
-            `SELECT id, email, name, is_verified
-             FROM cloudgpus.users
-             WHERE id = $1`,
-            [payload.userId],
+            `SELECT u.id, u.email, u.name, u.is_verified, s.id AS session_id
+             FROM cloudgpus.users u
+             JOIN cloudgpus.user_sessions s ON s.user_id = u.id
+             WHERE u.id = $1
+               AND s.token_id = $2
+               AND s.revoked_at IS NULL
+               AND (s.expires_at IS NULL OR s.expires_at > NOW())`,
+            [payload.userId, payload.jti],
           );
           if (result.rows[0]) {
             req.user = {
@@ -96,6 +106,7 @@ export function optionalAuth(pool: Pool): AuthMiddleware {
               name: result.rows[0].name,
               isVerified: result.rows[0].is_verified,
             };
+            req.sessionId = result.rows[0].session_id;
           }
         }
       }

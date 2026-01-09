@@ -49,12 +49,16 @@ const emailSchema = z.object({
   to: z.string().email(),
   subject: z.string().min(1),
   text: z.string().min(1),
+  html: z.string().min(1).optional(),
+  from: z.string().min(3).optional(),
+  replyTo: z.string().min(3).optional(),
+  headers: z.record(z.string()).optional(),
 });
 
 export function emailProcessor() {
   return async (job: Job) => {
     const env = getEnv();
-    const { to, subject, text } = emailSchema.parse(job.data);
+    const { to, subject, text, html, from, replyTo, headers } = emailSchema.parse(job.data);
 
     if (!env.SMTP_HOST || !env.SMTP_PORT || !env.SMTP_USER || !env.SMTP_PASS) {
       logger.warn("SMTP not configured; skipping email send");
@@ -71,11 +75,18 @@ export function emailProcessor() {
       },
     });
 
+    const defaultFromEmail = env.SMTP_FROM_EMAIL || env.SMTP_USER;
+    const defaultFromName = env.SMTP_FROM_NAME || "CloudGPUs.io";
+    const formattedFrom = `${defaultFromName} <${defaultFromEmail}>`;
+
     await transporter.sendMail({
-      from: env.SMTP_USER,
+      from: from ?? formattedFrom,
       to,
       subject,
       text,
+      html,
+      replyTo: replyTo ?? env.SUPPORT_EMAIL ?? undefined,
+      headers: headers ?? undefined,
     });
 
     return { ok: true };

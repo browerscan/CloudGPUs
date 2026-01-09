@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";
-import { apiGet } from "@/lib/api";
+import { apiGet, getProvider } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -21,28 +21,33 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CoreWeavePage() {
-  // Fetch CoreWeave instances
-  const instances = await apiGet<{
-    docs: Array<{
-      id: string;
-      gpu_slug: string;
-      gpu_name: string;
-      gpu_short_name: string;
-      gpu_vram_gb: number;
-      gpu_architecture: string;
-      price_per_gpu_hour: string;
-      price_per_hour_spot: string | null;
-      instance_type: string;
-      gpu_count: number;
-      has_nvlink: boolean | null;
-      has_infiniband: boolean | null;
-      availability_status: string;
-      last_scraped_at: string;
-    }>;
-  }>(
-    `/api/instances?limit=200&depth=1&where[provider_slug][equals]=coreweave&where[is_active][equals]=true&sort=price_per_gpu_hour`,
-    { next: { revalidate: 600 } },
-  ).catch(() => ({ docs: [] }));
+  // Fetch provider first to get ID
+  const provider = await getProvider("coreweave").catch(() => null);
+
+  // Fetch CoreWeave instances using provider_id (provider_slug filter doesn't work)
+  const instances = provider
+    ? await apiGet<{
+        docs: Array<{
+          id: string;
+          gpu_slug: string;
+          gpu_name: string;
+          gpu_short_name: string;
+          gpu_vram_gb: number;
+          gpu_architecture: string;
+          price_per_gpu_hour: string;
+          price_per_hour_spot: string | null;
+          instance_type: string;
+          gpu_count: number;
+          has_nvlink: boolean | null;
+          has_infiniband: boolean | null;
+          availability_status: string;
+          last_scraped_at: string;
+        }>;
+      }>(
+        `/api/instances?limit=100&depth=1&where[provider_id][equals]=${encodeURIComponent(provider.id)}&where[is_active][equals]=true&sort=price_per_gpu_hour`,
+        { next: { revalidate: 600 } },
+      ).catch(() => ({ docs: [] }))
+    : { docs: [] };
 
   // Group by GPU slug
   const grouped = new Map<
@@ -224,9 +229,9 @@ export default async function CoreWeavePage() {
             CoreWeave built its entire platform around GPU acceleration from day one.
           </p>
           <p>
-            The company&apos;s infrastructure is <strong>Kubernetes-native</strong>, meaning every aspect
-            of their platform is designed for containerized workloads. This architecture provides
-            several advantages: simplified deployment, auto-scaling capabilities, and deep
+            The company&apos;s infrastructure is <strong>Kubernetes-native</strong>, meaning every
+            aspect of their platform is designed for containerized workloads. This architecture
+            provides several advantages: simplified deployment, auto-scaling capabilities, and deep
             integration with the modern AI/ML software stack. CoreWeave has positioned itself as a
             cost-effective alternative to AWS, Google Cloud, and Azure, often advertising{" "}
             <strong>50-80% lower pricing</strong> for equivalent GPU instances.
@@ -397,9 +402,10 @@ export default async function CoreWeavePage() {
         <div className="muted" style={{ lineHeight: 1.8 }}>
           <p style={{ marginTop: 0 }}>
             When comparing <strong>CoreWeave vs AWS</strong>, the primary consideration is cost
-            efficiency. CoreWeave&apos;s specialized infrastructure allows them to offer significantly
-            lower GPU pricing than AWS EC2 P5 and P4 instances. For example, H100 SXM instances on
-            CoreWeave are typically much cheaper per hour than AWS p5.48xlarge instances.
+            efficiency. CoreWeave&apos;s specialized infrastructure allows them to offer
+            significantly lower GPU pricing than AWS EC2 P5 and P4 instances. For example, H100 SXM
+            instances on CoreWeave are typically much cheaper per hour than AWS p5.48xlarge
+            instances.
           </p>
           <p>
             However, AWS provides a broader ecosystem including Sagemaker, managed services, and
@@ -408,10 +414,10 @@ export default async function CoreWeavePage() {
             prioritize GPU cost efficiency and are comfortable managing Kubernetes infrastructure.
           </p>
           <p style={{ marginBottom: 0 }}>
-            For <strong>AI/ML workloads specifically</strong>, CoreWeave&apos;s focused platform often
-            delivers better price-performance. Their inference-optimized infrastructure can serve
-            models at lower cost per request than AWS SageMaker endpoints. Training workloads also
-            benefit from CoreWeave&apos;s simplified networking and storage integrations.
+            For <strong>AI/ML workloads specifically</strong>, CoreWeave&apos;s focused platform
+            often delivers better price-performance. Their inference-optimized infrastructure can
+            serve models at lower cost per request than AWS SageMaker endpoints. Training workloads
+            also benefit from CoreWeave&apos;s simplified networking and storage integrations.
           </p>
         </div>
       </section>
@@ -420,9 +426,9 @@ export default async function CoreWeavePage() {
         <h2 style={{ marginTop: 0, fontSize: 18 }}>Best Use Cases for CoreWeave</h2>
         <div className="muted" style={{ lineHeight: 1.8 }}>
           <p style={{ marginTop: 0 }}>
-            <strong>LLM inference:</strong> CoreWeave&apos;s optimized infrastructure is particularly
-            well-suited for serving large language models. Their autoscaling capabilities and fast
-            storage integration enable efficient inference serving.
+            <strong>LLM inference:</strong> CoreWeave&apos;s optimized infrastructure is
+            particularly well-suited for serving large language models. Their autoscaling
+            capabilities and fast storage integration enable efficient inference serving.
           </p>
           <p>
             <strong>Multi-GPU training:</strong> H100 and A100 instances with InfiniBand support
@@ -463,10 +469,10 @@ export default async function CoreWeavePage() {
             <div className="muted" style={{ marginTop: 4, lineHeight: 1.7 }}>
               CoreWeave is built on Kubernetes from the ground up, making it exceptionally
               well-suited for containerized AI/ML workloads. Unlike traditional clouds that added
-              GPU support as an afterthought, CoreWeave&apos;s entire infrastructure is designed around
-              GPU acceleration. This includes optimized networking, storage integrations with WekaFS
-              and Luster, and a simplified pricing model without hidden egress or data transfer
-              fees.
+              GPU support as an afterthought, CoreWeave&apos;s entire infrastructure is designed
+              around GPU acceleration. This includes optimized networking, storage integrations with
+              WekaFS and Luster, and a simplified pricing model without hidden egress or data
+              transfer fees.
             </div>
           </div>
           <div>
@@ -485,10 +491,10 @@ export default async function CoreWeavePage() {
             <div style={{ fontWeight: 800 }}>What GPU models are available on CoreWeave?</div>
             <div className="muted" style={{ marginTop: 4, lineHeight: 1.7 }}>
               CoreWeave focuses on NVIDIA datacenter GPUs, primarily H100 SXM, H200, A100 80GB, A100
-              40GB, and L40S. They also offer RTX 6000 Ada and RTX 5000 Ada for workloads that don&apos;t
-              require datacenter-class hardware. Their inventory is heavily weighted toward Ampere
-              and Hopper architectures, with strong availability of H100 SXM5 configurations for
-              large-scale training.
+              40GB, and L40S. They also offer RTX 6000 Ada and RTX 5000 Ada for workloads that
+              don&apos;t require datacenter-class hardware. Their inventory is heavily weighted
+              toward Ampere and Hopper architectures, with strong availability of H100 SXM5
+              configurations for large-scale training.
             </div>
           </div>
           <div>

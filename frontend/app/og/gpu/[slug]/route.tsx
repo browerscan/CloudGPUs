@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 type ComparePricesResponse = {
   gpu: { slug: string; name: string; short_name: string };
@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
 
     const res = await fetch(url.toString(), {
       headers: { accept: "application/json" },
-      cache: "no-store",
+      next: { revalidate: 1800 },
     });
     if (res.ok) {
       const data = (await res.json()) as ComparePricesResponse;

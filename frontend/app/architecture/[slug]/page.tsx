@@ -6,7 +6,7 @@ import { PriceTable } from "@/components/PriceTable";
 import { comparePrices, listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export type ArchitecturePage = {
   slug: string;

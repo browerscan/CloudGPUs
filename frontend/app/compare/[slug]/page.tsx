@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
 import { ListItemSchema } from "@/components/ListItemSchema";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { DataFreshnessBadge } from "@/components/DataFreshnessBadge";
 import {
   comparePrices,
   compareProviders,
@@ -47,63 +48,8 @@ async function tryGetGpu(slug: string) {
 }
 
 export async function generateStaticParams() {
-  let providers: Awaited<ReturnType<typeof listProviders>>;
-  let gpus: Awaited<ReturnType<typeof listGpuModels>>;
-  try {
-    [providers, gpus] = await Promise.all([listProviders(), listGpuModels()]);
-  } catch {
-    // If the API is unavailable during build, skip pre-generation and rely on ISR at runtime.
-    return [];
-  }
-
-  const featuredProviderPairs: Array<[string, string]> = [
-    ["lambda-labs", "runpod"],
-    ["coreweave", "lambda-labs"],
-    ["runpod", "vast-ai"],
-    ["nebius", "lambda-labs"],
-    ["gmi-cloud", "runpod"],
-    ["voltage-park", "lambda-labs"],
-  ];
-
-  const providerParams = featuredProviderPairs.map(([a, b]) => ({
-    slug: canonicalCompareSlug(a, b),
-  }));
-
-  const gpuPairs: Array<[string, string]> = [
-    ["h100-sxm", "h200-sxm"],
-    ["h100-sxm", "a100-80gb"],
-    ["rtx-4090", "rtx-5090"],
-    ["b200-sxm", "h200-sxm"],
-    ["l40s", "rtx-4090"],
-  ];
-  const gpuParams = gpuPairs.map(([a, b]) => ({ slug: canonicalCompareSlug(a, b) }));
-
-  // Add a small randomized sample of provider pairs for ISR warming.
-  const topProviders = providers.docs.slice(0, 12).map((p) => p.slug);
-  const samplePairs: Array<[string, string]> = [];
-  for (let i = 0; i < topProviders.length; i++) {
-    for (let j = i + 1; j < topProviders.length; j++) {
-      if (samplePairs.length >= 24) break;
-      samplePairs.push([topProviders[i]!, topProviders[j]!]);
-    }
-    if (samplePairs.length >= 24) break;
-  }
-
-  const sampleParams = samplePairs.map(([a, b]) => ({ slug: canonicalCompareSlug(a, b) }));
-
-  // Also add a couple of GPU pairs from the catalog.
-  const topGpus = gpus.docs.slice(0, 10).map((g) => g.slug);
-  const gpuSample: Array<[string, string]> = [];
-  for (let i = 0; i < topGpus.length; i++) {
-    for (let j = i + 1; j < topGpus.length; j++) {
-      if (gpuSample.length >= 12) break;
-      gpuSample.push([topGpus[i]!, topGpus[j]!]);
-    }
-    if (gpuSample.length >= 12) break;
-  }
-  const gpuSampleParams = gpuSample.map(([a, b]) => ({ slug: canonicalCompareSlug(a, b) }));
-
-  return [...providerParams, ...gpuParams, ...sampleParams, ...gpuSampleParams];
+  // Rely on ISR at runtime - skip pre-rendering to avoid build API dependency
+  return [];
 }
 
 export async function generateMetadata({
@@ -176,6 +122,14 @@ export default async function CompareDetailPage({ params }: { params: Promise<{ 
       ],
     };
 
+    const webPageSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${providerA.name} vs ${providerB.name}`,
+      url: `https://cloudgpus.io/compare/${canonical}`,
+      dateModified: data.generatedAt,
+    };
+
     const verdict = data.verdict;
     const cheaperLabel =
       verdict.cheaper === "tie"
@@ -238,6 +192,7 @@ export default async function CompareDetailPage({ params }: { params: Promise<{ 
       <div className="container">
         <JsonLd data={breadcrumbSchema} />
         <JsonLd data={faqSchema} />
+        <JsonLd data={webPageSchema} />
         <ListItemSchema
           itemListName={`${providerA.name} vs ${providerB.name} - Compared GPUs`}
           items={comparisonListItems}
@@ -265,6 +220,7 @@ export default async function CompareDetailPage({ params }: { params: Promise<{ 
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <DataFreshnessBadge timestamp={data.generatedAt} label="Data refreshed" />
               <Link className="btn btnSecondary" href="/compare">
                 All comparisons
               </Link>
@@ -589,11 +545,27 @@ export default async function CompareDetailPage({ params }: { params: Promise<{ 
           : bMin < aMin
             ? gpuB.short_name
             : "tie";
+    const updatedAtCandidates = [pricesA.generatedAt, pricesB.generatedAt].filter(
+      Boolean,
+    ) as string[];
+    const updatedAt =
+      updatedAtCandidates.length > 0
+        ? updatedAtCandidates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+        : new Date().toISOString();
+
+    const webPageSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      name: `${gpuA.short_name} vs ${gpuB.short_name}`,
+      url: `https://cloudgpus.io/compare/${canonical}`,
+      dateModified: updatedAt,
+    };
 
     return (
       <div className="container">
         <JsonLd data={breadcrumbSchema} />
         <JsonLd data={faqSchema} />
+        <JsonLd data={webPageSchema} />
 
         <div className="card" style={{ padding: 22 }}>
           <div
@@ -609,6 +581,7 @@ export default async function CompareDetailPage({ params }: { params: Promise<{ 
               </p>
             </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <DataFreshnessBadge timestamp={updatedAt} label="Data refreshed" />
               <Link className="btn btnSecondary" href="/compare">
                 All comparisons
               </Link>

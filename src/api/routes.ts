@@ -28,12 +28,17 @@ import {
   registerHandler,
   loginHandler,
   magicLinkHandler,
+  magicLoginHandler,
   verifyEmailHandler,
   resendVerifyHandler,
   requestResetHandler,
   resetPasswordHandler,
   getMeHandler,
   updateMeHandler,
+  changePasswordHandler,
+  listSessionsHandler,
+  revokeSessionHandler,
+  revokeAllSessionsHandler,
   saveComparisonHandler,
   listComparisonsHandler,
   deleteComparisonHandler,
@@ -41,6 +46,10 @@ import {
   claimAlertHandler,
   withAuth,
 } from "./handlers/auth.js";
+import {
+  getEmailPreferencesHandler,
+  updateEmailPreferencesHandler,
+} from "./handlers/email-preferences.js";
 import { compose } from "./async.js";
 
 // Strict rate limiter for auth endpoints
@@ -139,29 +148,45 @@ export function registerApiRoutes(app: Express, deps: { pool: Pool; redis: Redis
   app.post(
     "/api/auth/register",
     authRateLimiter,
-    asyncHandler(registerHandler({ pool: deps.pool })),
+    asyncHandler(registerHandler({ pool: deps.pool, redis: deps.redis })),
   );
   app.post("/api/auth/login", authRateLimiter, asyncHandler(loginHandler({ pool: deps.pool })));
   app.post(
     "/api/auth/magic-link",
     authRateLimiter,
-    asyncHandler(magicLinkHandler({ pool: deps.pool })),
+    asyncHandler(magicLinkHandler({ pool: deps.pool, redis: deps.redis })),
+  );
+  app.get(
+    "/api/auth/magic-login",
+    authRateLimiter,
+    asyncHandler(magicLoginHandler({ pool: deps.pool })),
   );
   app.get("/api/auth/verify", asyncHandler(verifyEmailHandler({ pool: deps.pool })));
   app.post(
     "/api/auth/resend-verify",
     authRateLimiter,
-    asyncHandler(resendVerifyHandler({ pool: deps.pool })),
+    asyncHandler(resendVerifyHandler({ pool: deps.pool, redis: deps.redis })),
   );
   app.post(
     "/api/auth/request-reset",
     authRateLimiter,
-    asyncHandler(requestResetHandler({ pool: deps.pool })),
+    asyncHandler(requestResetHandler({ pool: deps.pool, redis: deps.redis })),
   );
   app.post(
     "/api/auth/reset-password",
     authRateLimiter,
     asyncHandler(resetPasswordHandler({ pool: deps.pool })),
+  );
+
+  // Email preferences (token or auth)
+  const withOptionalAuth = withAuth({ pool: deps.pool });
+  app.get(
+    "/api/email-preferences",
+    compose(withOptionalAuth, asyncHandler(getEmailPreferencesHandler(deps.pool))),
+  );
+  app.post(
+    "/api/email-preferences",
+    compose(withOptionalAuth, asyncHandler(updateEmailPreferencesHandler(deps.pool))),
   );
 
   // Protected user endpoints (require authentication)
@@ -170,6 +195,22 @@ export function registerApiRoutes(app: Express, deps: { pool: Pool; redis: Redis
   app.patch(
     "/api/me",
     compose(withAuthMiddleware, asyncHandler(updateMeHandler({ pool: deps.pool }))),
+  );
+  app.post(
+    "/api/me/change-password",
+    compose(withAuthMiddleware, asyncHandler(changePasswordHandler({ pool: deps.pool }))),
+  );
+  app.get(
+    "/api/me/sessions",
+    compose(withAuthMiddleware, asyncHandler(listSessionsHandler({ pool: deps.pool }))),
+  );
+  app.post(
+    "/api/me/sessions/revoke",
+    compose(withAuthMiddleware, asyncHandler(revokeSessionHandler({ pool: deps.pool }))),
+  );
+  app.post(
+    "/api/me/sessions/revoke-all",
+    compose(withAuthMiddleware, asyncHandler(revokeAllSessionsHandler({ pool: deps.pool }))),
   );
   app.post(
     "/api/me/comparisons",

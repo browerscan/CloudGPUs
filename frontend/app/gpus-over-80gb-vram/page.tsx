@@ -5,7 +5,7 @@ import { PriceTable } from "@/components/PriceTable";
 import { comparePrices, listGpuModels } from "@/lib/api";
 import { seoGpuSlug } from "@/lib/aliases";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -23,7 +23,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function GpusOver80gbPage() {
   // Get all GPUs and filter by VRAM
-  const gpus = await listGpuModels();
+  const gpus = await listGpuModels().catch(() => ({
+    docs: [] as Awaited<ReturnType<typeof listGpuModels>>["docs"],
+  }));
   const filteredGpus = gpus.docs.filter((g) => g.vram_gb >= 80);
 
   // Fetch pricing for filtered GPUs

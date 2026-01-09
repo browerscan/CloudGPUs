@@ -88,6 +88,7 @@ describe("workers/notify processors", () => {
     process.env["SMTP_PORT"] = "587";
     process.env["SMTP_USER"] = "user@example.com";
     process.env["SMTP_PASS"] = "pass";
+    process.env["SMTP_FROM_NAME"] = "CloudGPUs.io";
     const { resetEnvForTests } = await import("../../src/env.js");
     resetEnvForTests();
 
@@ -110,7 +111,7 @@ describe("workers/notify processors", () => {
     );
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: "user@example.com",
+        from: "CloudGPUs.io <user@example.com>",
         to: "to@example.com",
         subject: "Subj",
         text: "Hello",

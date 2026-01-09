@@ -10,7 +10,17 @@ import { PriceAlertSubscriptions } from "./collections/price-alert-subscriptions
 const devSecret = "dev-secret-do-not-use-in-production-dev-secret-do-not-use-in-production";
 
 const secret = process.env["PAYLOAD_SECRET"] ?? devSecret;
-if (process.env["NODE_ENV"] === "production") {
+const isProduction = process.env["NODE_ENV"] === "production";
+const lifecycle = process.env["npm_lifecycle_event"] ?? "";
+const nextPhase = process.env["NEXT_PHASE"] ?? "";
+const isBuildPhase =
+  lifecycle.includes("build") ||
+  nextPhase === "phase-production-build" ||
+  nextPhase === "phase-production-export";
+
+// Enforce a secure secret at runtime, but do not fail `next build cms` (build-time) where secrets
+// may intentionally be injected only at deploy/runtime.
+if (isProduction && !isBuildPhase) {
   if (!process.env["PAYLOAD_SECRET"] || process.env["PAYLOAD_SECRET"] === devSecret) {
     throw new Error(
       "PAYLOAD_SECRET must be set in production. Refusing to start without a secure secret.",
