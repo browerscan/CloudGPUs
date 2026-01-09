@@ -45,7 +45,7 @@ function classifyFailure(err: unknown): {
     return { status: "timeout", code: "timeout" };
   if (msg.includes("429") || msg.includes("rate_limited"))
     return { status: "rate_limited", code: "rate_limited" };
-  return { status: "failed", code: msg.slice(0, 80) };
+  return { status: "failed", code: msg.slice(0, 50) };
 }
 
 export function pricingFetchProcessor(args: { pool: Pool; redis: Redis }) {
