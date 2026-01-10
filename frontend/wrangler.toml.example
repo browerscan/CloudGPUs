@@ -1,19 +1,18 @@
-# CloudGPUs.io Frontend - Cloudflare Workers Configuration (OpenNext)
-# Copy to wrangler.toml and fill in your account_id
-# Or use environment variable: CLOUDFLARE_ACCOUNT_ID
+# CloudGPUs.io Frontend - Cloudflare Workers Config
+# Copy this to wrangler.toml and configure as needed
+#
+# Required env vars (set in .env.local or Cloudflare dashboard):
+# - CLOUDFLARE_ACCOUNT_ID
+# - CLOUDFLARE_API_TOKEN
 
 name = "cloudgpus-web"
 main = ".open-next/worker.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Account ID - use environment variable CLOUDFLARE_ACCOUNT_ID instead
-# account_id = "your-account-id-here"
-
-# Assets configuration (OpenNext output)
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
 [vars]
-NEXT_PUBLIC_API_URL = "https://api.cloudgpus.io"
+NEXT_PUBLIC_API_BASE_URL = "https://api.cloudgpus.io"
