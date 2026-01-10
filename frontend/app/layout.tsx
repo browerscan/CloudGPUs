@@ -1,10 +1,29 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { OrganizationSchema } from "@/components/OrganizationSchema";
 import { WebSiteSchema } from "@/components/WebSiteSchema";
 import { CookieConsent } from "@/components/CookieConsent";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+// Script to prevent flash of wrong theme
+const themeScript = `
+  (function() {
+    try {
+      const theme = localStorage.getItem('theme') || 'system';
+      const isDark = theme === 'dark' ||
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      if (isDark) document.documentElement.classList.add('dark');
+    } catch (e) {}
+  })();
+`;
 
 const SITE_URL = process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://cloudgpus.io";
 const GOOGLE_VERIFICATION = process.env["NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION"];
@@ -87,15 +106,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <OrganizationSchema />
         <WebSiteSchema />
         {/* Resource hints for external domains */}
         <link rel="preconnect" href="https://api.cloudgpus.io" />
         <link rel="dns-prefetch" href="https://api.cloudgpus.io" />
       </head>
-      <body>
+      <body className="antialiased">
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>

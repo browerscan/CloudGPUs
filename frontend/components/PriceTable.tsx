@@ -229,49 +229,29 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <span className="muted" style={{ fontSize: 13, fontWeight: 600 }}>
-          Quick filters:
-        </span>
+      {/* Quick filters */}
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <span className="muted text-[13px] font-semibold">Quick filters:</span>
         {quickFilters.map((f) => (
           <button
             key={f.key}
-            className={activeQuickFilter === f.key ? "btn" : "btn btnSecondary"}
+            className={`${activeQuickFilter === f.key ? "btn" : "btn btnSecondary"} text-[13px] py-1.5 px-3`}
             onClick={() => applyQuickFilter(f)}
             type="button"
-            style={{ fontSize: 13, padding: "6px 12px" }}
           >
             {f.label}
           </button>
         ))}
       </div>
 
-      <div
-        className="card"
-        style={{
-          padding: 14,
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-        }}
-      >
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Region
-          </span>
+      {/* Filters card */}
+      <div className="card p-3.5 grid gap-3 grid-cols-[repeat(auto-fit,minmax(140px,1fr))]">
+        <label className="grid gap-1">
+          <span className="muted text-xs">Region</span>
           <select
-            className="select"
+            className="select text-[13px]"
             value={filters.region}
             onChange={(e) => updateFilter("region", e.target.value)}
-            style={{ fontSize: 13 }}
           >
             <option value="all">All regions</option>
             {allRegions.map((r) => (
@@ -282,17 +262,14 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
           </select>
         </label>
 
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Network Type
-          </span>
+        <label className="grid gap-1">
+          <span className="muted text-xs">Network Type</span>
           <select
-            className="select"
+            className="select text-[13px]"
             value={filters.networkType}
             onChange={(e) =>
               updateFilter("networkType", e.target.value as FilterState["networkType"])
             }
-            style={{ fontSize: 13 }}
           >
             <option value="all">All</option>
             <option value="infiniband">InfiniBand only</option>
@@ -300,17 +277,14 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
           </select>
         </label>
 
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Billing Increment
-          </span>
+        <label className="grid gap-1">
+          <span className="muted text-xs">Billing Increment</span>
           <select
-            className="select"
+            className="select text-[13px]"
             value={filters.billingIncrement}
             onChange={(e) =>
               updateFilter("billingIncrement", e.target.value as FilterState["billingIncrement"])
             }
-            style={{ fontSize: 13 }}
           >
             <option value="all">All</option>
             <option value="per-minute">Per-minute billing</option>
@@ -318,17 +292,14 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
           </select>
         </label>
 
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Availability
-          </span>
+        <label className="grid gap-1">
+          <span className="muted text-xs">Availability</span>
           <select
-            className="select"
+            className="select text-[13px]"
             value={filters.availability}
             onChange={(e) =>
               updateFilter("availability", e.target.value as FilterState["availability"])
             }
-            style={{ fontSize: 13 }}
           >
             <option value="all">All</option>
             <option value="available">In stock now</option>
@@ -336,12 +307,10 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
           </select>
         </label>
 
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="muted" style={{ fontSize: 12 }}>
-            Max Price ($/GPU-hr)
-          </span>
+        <label className="grid gap-1">
+          <span className="muted text-xs">Max Price ($/GPU-hr)</span>
           <input
-            className="input"
+            className="input text-[13px]"
             type="number"
             step="0.01"
             min="0"
@@ -353,96 +322,62 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                 val === "" ? "" : Number.isNaN(Number(val)) ? "" : Number(val);
               updateFilter("maxPrice", num);
             }}
-            style={{ fontSize: 13 }}
           />
         </label>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            paddingTop: 18,
-            cursor: "pointer",
-          }}
-        >
+        <label className="flex items-center gap-2 pt-[18px] cursor-pointer">
           <input
             type="checkbox"
             checked={filters.showStale}
             onChange={(e) => updateFilter("showStale", e.target.checked)}
-            style={{ margin: 0 }}
+            className="m-0"
           />
-          <span className="muted" style={{ fontSize: 13 }}>
-            Show stale prices
-          </span>
+          <span className="muted text-[13px]">Show stale prices</span>
         </label>
 
         {hasActiveFilters ? (
           <button
-            className="btn btnSecondary"
+            className="btn btnSecondary text-[13px] py-2.5 px-3 justify-self-start"
             onClick={clearFilters}
             type="button"
-            style={{ fontSize: 13, padding: "10px 12px", justifySelf: "start" }}
           >
             Clear filters
           </button>
         ) : null}
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      {/* Results */}
+      <div className="mt-4">
         {filteredRows.length === 0 ? (
-          <div
-            className="card"
-            style={{ padding: 32, textAlign: "center", background: "rgba(15, 23, 42, 0.03)" }}
-          >
-            <p className="muted" style={{ margin: 0 }}>
-              No results match your filters. Try adjusting your criteria.
-            </p>
+          <div className="card p-8 text-center bg-[rgba(15,23,42,0.03)] dark:bg-[rgba(255,255,255,0.03)]">
+            <p className="muted m-0">No results match your filters. Try adjusting your criteria.</p>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
               <caption>
                 GPU pricing comparison for {gpuSlug}. Showing {filteredRows.length} of {rows.length}{" "}
                 results. Prices shown per GPU per hour. On-demand prices are fixed; spot prices vary
                 by market demand.
               </caption>
               <thead>
-                <tr style={{ textAlign: "left" }}>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  >
+                <tr className="text-left">
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]">
                     Provider
                   </th>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  >
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]">
                     On-demand
                   </th>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  >
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]">
                     Spot
                   </th>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  >
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]">
                     Details
                   </th>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  >
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]">
                     Updated
                   </th>
-                  <th
-                    scope="col"
-                    style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.08)" }}
-                  />
+                  <th scope="col" className="p-3 border-b border-[var(--color-border)]" />
                 </tr>
               </thead>
               <tbody>
@@ -473,121 +408,61 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                     updatedAgeHours == null
                       ? null
                       : updatedAgeHours < 6
-                        ? { label: "Fresh", color: "rgb(6, 95, 70)" }
+                        ? { label: "Fresh", variant: "success" as const }
                         : updatedAgeHours < 24
-                          ? { label: "OK", color: "rgb(120, 113, 108)" }
+                          ? { label: "OK", variant: "neutral" as const }
                           : updatedAgeHours < 48
-                            ? { label: "Stale", color: "rgb(180, 83, 9)" }
-                            : { label: "Very stale", color: "rgb(185, 28, 28)" };
+                            ? { label: "Stale", variant: "warning" as const }
+                            : { label: "Very stale", variant: "error" as const };
 
                   const isCheapest =
                     (row.spot ?? row.onDemand) !== null &&
                     cheapestPrice !== null &&
                     (row.spot ?? row.onDemand) === cheapestPrice;
 
+                  const freshnessStyles = {
+                    success: "bg-[var(--color-success-bg)] text-[var(--color-success)] border-[var(--color-success-border)]",
+                    neutral: "bg-[rgba(107,114,128,0.12)] text-[rgb(75,85,99)] dark:text-[rgb(156,163,175)] border-[rgba(107,114,128,0.35)]",
+                    warning: "bg-[var(--color-warning-bg)] text-[var(--color-warning)] border-[rgba(251,146,60,0.4)]",
+                    error: "bg-[var(--color-error-bg)] text-[var(--color-error)] border-[rgba(239,68,68,0.4)]",
+                  };
+
+                  const tierStyles: Record<string, string> = {
+                    enterprise: "bg-[rgba(59,130,246,0.12)] text-[rgb(37,99,235)] dark:text-[rgb(96,165,250)] border-[rgba(59,130,246,0.35)]",
+                    standard: "bg-[rgba(107,114,128,0.12)] text-[rgb(75,85,99)] dark:text-[rgb(156,163,175)] border-[rgba(107,114,128,0.35)]",
+                    community: "bg-[rgba(249,115,22,0.12)] text-[rgb(194,65,12)] dark:text-[rgb(251,146,60)] border-[rgba(249,115,22,0.35)]",
+                    depin: "bg-[rgba(249,115,22,0.12)] text-[rgb(194,65,12)] dark:text-[rgb(251,146,60)] border-[rgba(249,115,22,0.35)]",
+                  };
+
+                  const tier = row.provider.reliabilityTier.toLowerCase();
+
                   return (
                     <tr
                       key={row.provider.slug}
-                      className={`price-row${isCheapest ? " cheapest-row" : ""}`}
-                      style={
-                        freshness
-                          ? {
-                              borderLeft: `3px solid ${freshness.color}`,
-                            }
-                          : undefined
-                      }
+                      className={`price-row ${isCheapest ? "cheapest-row" : ""}`}
                     >
-                      <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            display: "flex",
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)]">
+                        <div className="font-bold flex items-center flex-wrap">
                           {row.provider.name}
                           {isCheapest && (
-                            <span
-                              style={{
-                                display: "inline-block",
-                                background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                                color: "white",
-                                fontSize: 10,
-                                fontWeight: 700,
-                                padding: "2px 6px",
-                                borderRadius: 4,
-                                marginLeft: 8,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.5px",
-                              }}
-                            >
+                            <span className="inline-block bg-gradient-to-br from-green-500 to-green-600 text-white text-[10px] font-bold py-0.5 px-1.5 rounded ml-2 uppercase tracking-wide">
                               Best Deal
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 12, marginTop: 2 }}>
-                          {(() => {
-                            const tier = row.provider.reliabilityTier.toLowerCase();
-                            const tierStyles: Record<
-                              string,
-                              { bg: string; color: string; border: string }
-                            > = {
-                              enterprise: {
-                                bg: "rgba(59, 130, 246, 0.12)",
-                                color: "rgb(37, 99, 235)",
-                                border: "rgba(59, 130, 246, 0.35)",
-                              },
-                              standard: {
-                                bg: "rgba(107, 114, 128, 0.12)",
-                                color: "rgb(75, 85, 99)",
-                                border: "rgba(107, 114, 128, 0.35)",
-                              },
-                              community: {
-                                bg: "rgba(249, 115, 22, 0.12)",
-                                color: "rgb(194, 65, 12)",
-                                border: "rgba(249, 115, 22, 0.35)",
-                              },
-                              depin: {
-                                bg: "rgba(249, 115, 22, 0.12)",
-                                color: "rgb(194, 65, 12)",
-                                border: "rgba(249, 115, 22, 0.35)",
-                              },
-                            };
-                            const style = tierStyles[tier] ?? tierStyles.standard;
-                            if (!style) return null;
-                            return (
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  background: style.bg,
-                                  color: style.color,
-                                  border: `1px solid ${style.border}`,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  padding: "2px 6px",
-                                  borderRadius: 4,
-                                  textTransform: "capitalize",
-                                }}
-                              >
-                                {row.provider.reliabilityTier}
-                              </span>
-                            );
-                          })()}
+                        <div className="text-xs mt-0.5">
+                          <span
+                            className={`inline-block text-[10px] font-semibold py-0.5 px-1.5 rounded border capitalize ${tierStyles[tier] ?? tierStyles.standard}`}
+                          >
+                            {row.provider.reliabilityTier}
+                          </span>
                         </div>
                       </td>
-                      <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)]">
                         {formatUsdPerHour(row.onDemand)}
                       </td>
-                      <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            flexWrap: "wrap",
-                          }}
-                        >
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)]">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {formatUsdPerHour(row.spot)}
                           {(() => {
                             const price = row.spot ?? row.onDemand;
@@ -598,97 +473,46 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                             );
                             if (savingsPercent < 15) return null;
                             return (
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  background: "rgba(16, 185, 129, 0.12)",
-                                  color: "rgb(6, 95, 70)",
-                                  border: "1px solid rgba(16, 185, 129, 0.35)",
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  padding: "2px 5px",
-                                  borderRadius: 4,
-                                }}
-                              >
+                              <span className="inline-block bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success-border)] text-[10px] font-bold py-0.5 px-[5px] rounded">
                                 {savingsPercent}% below avg
                               </span>
                             );
                           })()}
                         </div>
                       </td>
-                      <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        <div style={{ fontSize: 13 }}>
-                          <span style={{ fontWeight: 700 }}>{row.instance.instanceType}</span>{" "}
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)]">
+                        <div className="text-[13px]">
+                          <span className="font-bold">{row.instance.instanceType}</span>{" "}
                           <span className="muted">· {row.instance.gpuCount}×GPU</span>
                         </div>
-                        <div
-                          className="muted"
-                          style={{ fontSize: 12, marginTop: 4, lineHeight: 1.6 }}
-                        >
+                        <div className="muted text-xs mt-1 leading-relaxed">
                           <div>Network: {networkBits.length ? networkBits.join(" · ") : "—"}</div>
                           <div>Billing: {billingBits.length ? billingBits.join(" · ") : "—"}</div>
                         </div>
                       </td>
-                      <td style={{ padding: 12, borderBottom: "1px solid rgba(15, 23, 42, 0.06)" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)]">
+                        <div className="flex items-center gap-1.5">
                           {freshness ? (
                             <span
-                              className="badge"
-                              style={{
-                                fontSize: 10,
-                                padding: "2px 6px",
-                                background: `rgba(${
-                                  freshness.color === "rgb(6, 95, 70)"
-                                    ? "16, 185, 129"
-                                    : freshness.color === "rgb(120, 113, 108)"
-                                      ? "120, 113, 108"
-                                      : freshness.color === "rgb(180, 83, 9)"
-                                        ? "251, 146, 60"
-                                        : "239, 68, 68"
-                                }, 0.15)`,
-                                color: freshness.color,
-                                borderColor: `rgba(${
-                                  freshness.color === "rgb(6, 95, 70)"
-                                    ? "16, 185, 129"
-                                    : freshness.color === "rgb(120, 113, 108)"
-                                      ? "120, 113, 108"
-                                      : freshness.color === "rgb(180, 83, 9)"
-                                        ? "251, 146, 60"
-                                        : "239, 68, 68"
-                                }, 0.4)`,
-                              }}
+                              className={`badge text-[10px] py-0.5 px-1.5 ${freshnessStyles[freshness.variant]}`}
                             >
                               {freshness.label}
                             </span>
                           ) : null}
-                          <span className="muted" style={{ fontSize: 13 }}>
+                          <span className="muted text-[13px]">
                             {formatRelativeTime(row.lastUpdated)}
                           </span>
                         </div>
-                        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                        <div className="muted text-xs mt-1">
                           {new Date(row.lastUpdated).toLocaleString()}
                         </div>
                       </td>
-                      <td
-                        style={{
-                          padding: 12,
-                          borderBottom: "1px solid rgba(15, 23, 42, 0.06)",
-                          textAlign: "right",
-                        }}
-                      >
+                      <td className="p-3 border-b border-[rgba(15,23,42,0.06)] dark:border-[rgba(255,255,255,0.06)] text-right">
                         <a
-                          className="btn"
+                          className={`btn ${isCheapest ? "bg-gradient-to-br from-green-500 to-green-600 border-green-600" : ""}`}
                           href={affiliateClickUrl({ providerSlug: row.provider.slug, gpuSlug })}
                           target="_blank"
                           rel="noopener nofollow"
-                          style={
-                            isCheapest
-                              ? {
-                                  background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                                  borderColor: "#16a34a",
-                                }
-                              : undefined
-                          }
                         >
                           {isCheapest ? "Get This Deal" : "View offer"}
                           <svg
@@ -696,7 +520,7 @@ export function PriceTable({ gpuSlug, rows }: { gpuSlug: string; rows: PriceRow[
                             height="12"
                             viewBox="0 0 12 12"
                             fill="none"
-                            style={{ marginLeft: 4 }}
+                            className="ml-1"
                           >
                             <path
                               d="M3.5 2.5H9.5V8.5M9.5 2.5L2.5 9.5"

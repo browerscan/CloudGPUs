@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { getCachedUser, setCachedUser, clearAuthToken, type AuthUser } from "../lib/api";
 import { LoginButton } from "./AuthModal";
+import { ThemeToggle } from "./ThemeToggle";
 
 const AuthModal = dynamic(() => import("./AuthModal").then((m) => ({ default: m.AuthModal })), {
   loading: () => null,
@@ -32,9 +33,9 @@ export function Header() {
 
   return (
     <>
-      <header className="card" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0 }}>
-        <div className="container" style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <Link href="/" style={{ fontWeight: 800, letterSpacing: "-0.02em" }}>
+      <header className="card rounded-none border-x-0">
+        <div className="container flex items-center gap-4">
+          <Link href="/" className="font-extrabold tracking-tight text-lg">
             CloudGPUs.io
           </Link>
           <button
@@ -50,33 +51,37 @@ export function Header() {
           <nav
             aria-label="Main navigation"
             data-expanded={menuOpen}
-            className="muted"
-            style={{ display: "flex", gap: 12, fontSize: 14 }}
+            className="muted flex gap-3 text-sm"
           >
-            <Link href="/cloud-gpu">GPUs</Link>
-            <Link href="/provider">Providers</Link>
-            <Link href="/compare">Compare</Link>
-            <Link href="/best-gpu-for">Use cases</Link>
-            <Link href="/region">Regions</Link>
-            <Link href="/calculator">Calculator</Link>
+            <Link href="/cloud-gpu" className="hover:text-[var(--color-foreground)]">
+              GPUs
+            </Link>
+            <Link href="/provider" className="hover:text-[var(--color-foreground)]">
+              Providers
+            </Link>
+            <Link href="/compare" className="hover:text-[var(--color-foreground)]">
+              Compare
+            </Link>
+            <Link href="/best-gpu-for" className="hover:text-[var(--color-foreground)]">
+              Use cases
+            </Link>
+            <Link href="/region" className="hover:text-[var(--color-foreground)]">
+              Regions
+            </Link>
+            <Link href="/calculator" className="hover:text-[var(--color-foreground)]">
+              Calculator
+            </Link>
           </nav>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+          <div className="ml-auto flex items-center gap-2.5">
+            <ThemeToggle />
             {user ? (
               <>
-                <Link href="/account" className="btn btnSecondary" style={{ fontSize: 14 }}>
+                <Link href="/account" className="btn btnSecondary text-sm">
                   My Account
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="btnSecondary"
-                  style={{
-                    background: "none",
-                    border: "1px solid var(--border)",
-                    padding: "8px 16px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontSize: 14,
-                  }}
+                  className="btnSecondary rounded-md border border-[var(--color-border-strong)] bg-transparent px-4 py-2 text-sm cursor-pointer hover:bg-[var(--color-surface-elevated)]"
                 >
                   Sign Out
                 </button>
@@ -90,10 +95,9 @@ export function Header() {
                   }}
                 />
                 <a
-                  className="btn btnSecondary"
+                  className="btn btnSecondary text-sm"
                   href="https://api.cloudgpus.io/admin"
                   rel="noreferrer"
-                  style={{ fontSize: 14 }}
                 >
                   Admin
                 </a>
